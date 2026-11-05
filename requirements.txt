@@ -1,0 +1,7 @@
+# Direct dependencies only, pinned. Short and readable; see requirements-lock.txt for the exact environment.
+RapidFuzz==3.14.6
+python-dateutil==4.0.0
+mcp==1.30.0
+python-dotenv==1.2.4
+tqdm==4.70.1
+pytest==9.2.0

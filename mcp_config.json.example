@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "gmail": {
+      "type": "stdio",
+      "command": "/path/to/enron-dedup/.venv/bin/python",
+      "args": [
+        "/path/to/enron-dedup/mcp_server/gmail_server.py"
+      ],
+      "env": {}
+    }
+  }
+}
