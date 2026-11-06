@@ -9,3 +9,4 @@ __pycache__/
 output/parsed_emails.jsonl
 output/sample_run/
 output/backup_*/
+scratch/

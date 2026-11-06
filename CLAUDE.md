@@ -43,6 +43,16 @@ is to help me build quickly while I stay in control of the design.
   (names or emails containing "test", "demo", "do not contact").
 - Ask before adding any new library.
 
+## Boundaries
+
+- **Never read `.env`** in any form, not even variable names. If you need to know
+  whether a variable is set, ask me.
+- **Don't access anything outside this project folder** (Desktop, Downloads, other
+  folders) without asking me first. If a file I mention isn't in the project, tell
+  me and ask.
+- **Throwaway scripts go in `scratch/`** inside the project (git-ignored), not in
+  system temp folders.
+
 ## Time awareness
 
 This is a ~24-hour take-home. Remind me to check scope at each checkpoint:
