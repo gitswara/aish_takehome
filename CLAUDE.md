@@ -55,5 +55,7 @@ This is a ~24-hour take-home. Remind me to check scope at each checkpoint:
 | 15h | Task 4 notifications: draft replies + live MCP send |
 | 15h+ | Docs and polish: README.md, AI_USAGE.md, final checks |
 
+**Re-plan (at about hour 14, ~10 h left):** DB by hour 16 · dedup by hour 19 · notifications by hour 21 · docs and final checks by hour 24. Nice-to-haves only once Task 4 works end to end.
+
 If a checkpoint slips, we stop adding features to that task and make its output
 work and its docs complete before moving on.

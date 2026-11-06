@@ -303,3 +303,132 @@ Counts come from a scan of all 21,662 files before I wrote the parser. Counts ma
   - folded To + UTC date
   - quoted-printable + D16
 - **The tests can fail:** I broke D19, D6 and D17 in memory one at a time, and each matching test failed as it should.
+
+---
+
+# Task 2: Database decisions
+
+The facts behind these are in `docs/FINDINGS_task2.md` (measured on the 20,339 parsed records). I accepted all the recommendations, with my own changes to D30 and D34.
+
+## D25. Database engine
+
+- **Options:** (a) SQLite · (b) local PostgreSQL.
+- **I chose (a), SQLite.** It's the spec's preference, a single file, and built into Python. PostgreSQL would need a server, a driver and setup for reviewers.
+- **Rows affected:** none (design).
+
+## D26. How to normalise addresses
+
+- **Options:**
+  - (a) `recipients(email_id, address, type)` with the address as text in every row
+  - (b) an `addresses(id, address UNIQUE)` lookup table + `email_recipients(email_id, address_id, recipient_type)`; `from_address` stays as text on `emails`
+  - (c) like (b), but `from_address` also becomes an `address_id`
+- **I chose (b).** 190,390 recipient rows (after D29) point to only **11,146** distinct recipient addresses, so each address is stored once. *(My findings first said 13,390; that number included senders, who are a text column on `emails`, not rows in `addresses`.)* I kept `from_address` as text because it's a spec field with a required index; making it an id (c) would put a join in every sender query.
+- **Rows affected (full load):** **11,146** address rows; **190,390** recipient rows (to 131,392 · cc 29,499 · bcc 29,499).
+
+## D27. Primary key for `emails`
+
+- **Options:** (a) an integer `id` primary key + `message_id TEXT UNIQUE NOT NULL` · (b) `message_id` as the primary key.
+- **I chose (a).** Recipient rows reference a small integer instead of a 45-character string. The unique constraint on `message_id` that the spec requires is still there.
+- **Rows affected:** none (design).
+
+## D28. Where the Task 3/4 columns live
+
+- **Options:** (a) columns on `emails` · (b) separate `duplicates` / `notifications` tables.
+- **I chose (a).** The spec's `schema.sql` deliverable names these columns, and Task 3 says to flag *the email itself*. The columns:
+  - `is_duplicate INTEGER NOT NULL DEFAULT 0`
+  - `duplicate_of TEXT REFERENCES emails(message_id)`
+  - `similarity_score REAL` (the flagged email's score against its original; NULL otherwise)
+  - `notification_sent INTEGER NOT NULL DEFAULT 0`
+  - `notification_date TEXT`
+
+  Booleans are 0/1, because SQLite has no boolean type.
+- **Rows affected:** none (design).
+
+## D29. The same address repeated within one list
+
+- **Context:** in 185 emails the same address appears twice in `To` (426 extra rows). In 59 emails the same happens in `Cc`, and in `Bcc` too (114 extra rows each).
+- **Options:** (a) one row per (email, address, type) · (b) keep every repeat, with a `position` column.
+- **I chose (a),** with `PRIMARY KEY (email_id, address_id, recipient_type)`. Being listed twice doesn't make someone a recipient twice. The loader counts and reports the rows it skips.
+- **Rows affected (full load):** **654** repeat rows skipped (426 + 114 + 114), exactly as predicted. 191,044 raw → 190,390 stored.
+
+## D30. Making the load safe to re-run
+
+- **Options:**
+  - (a) delete and rebuild every run (wipes `notification_sent`, so it risks re-sending emails)
+  - (b) `INSERT OR IGNORE` (parser fixes never reach rows already loaded)
+  - (c) upsert
+- **I chose (c), with my own additions:**
+  1. **Upsert:** `INSERT … ON CONFLICT(message_id) DO UPDATE` refreshes all parsed fields and **never touches** `is_duplicate`, `duplicate_of`, `similarity_score`, `notification_sent` or `notification_date`.
+  2. **Replace recipients:** for every email loaded, its `email_recipients` rows are deleted and re-inserted. This way a parser change can't leave stale recipients behind.
+  3. **Emails no longer in the JSONL** (e.g. a parser change made them fail): the loader reports them. It **deletes** them **unless `notification_sent = 1`**; those it **keeps and reports**, because a notification has already gone out for them.
+  4. **`--rebuild` flag** for a clean start. It **refuses** to run if any row has `notification_sent = 1`.
+  5. **Report on every run:** emails inserted, updated, deleted, and kept because they were notified; recipient rows written; repeats skipped (D29).
+  6. **One transaction:** a crash leaves the database as it was.
+- **Stale originals (decided before coding):** what if a stale email is the *original* that other emails point to in `duplicate_of`?
+  - Options: (a) delete it and clear the flags of the duplicates pointing to it, so Task 3 regroups them · (b) keep any stale email that is referenced.
+  - **I chose (a) with one guard taken from (b):**
+    - **Normal case:** delete the stale email. Every email pointing to it gets `is_duplicate = 0`, `duplicate_of = NULL` and `similarity_score = NULL`, so Task 3's next scan regroups them.
+    - **Guard:** if the stale email **was notified itself**, or **any email with `notification_sent = 1` points to it**, keep it. Nothing pointing to it is changed, and it's reported as **"stale, kept for notification history"**.
+  - **Why the guard:** a notification that has been sent quotes its original's Message-ID and date. That original must stay traceable in the database, or the sent notice would refer to a record that no longer exists.
+  - **When this can happen:** only if the parser changes *after* live sends. On a normal run (same JSONL), nothing is stale.
+- **Rows affected:** first load: 20,339 inserted, 0 updated, 0 deleted. Second load: 0 inserted, 20,339 updated.
+
+## D31. Date storage
+
+- **Options:** (a) TEXT, ISO-8601 UTC as parsed · (b) INTEGER Unix seconds.
+- **I chose (a).** All 20,339 dates have the same 25-character UTC format, so text sorts chronologically. It's readable in query output, works with SQLite's date functions, and the `date` index serves range queries.
+- **Rows affected:** none (design).
+
+## D32. Loading library
+
+- **Options:** (a) Python's built-in `sqlite3` with plain SQL · (b) pandas `to_sql` (not installed; can't express the upsert or the address lookup) · (c) SQLAlchemy.
+- **I chose (a).** No new dependency, and the loader's SQL matches `schema.sql` line for line. CLAUDE.md's "prefer pandas" is about data manipulation, and this is loading.
+- **Rows affected:** none (tooling).
+
+## D33. Failed parses in the database?
+
+- **Options:** (a) no; `error_log.txt` is the deliverable · (b) add a `parse_failures` table.
+- **I chose (a).** (b) stays a possible nice-to-have.
+- **Rows affected:** none; the 1,323 failures stay in `error_log.txt` only.
+
+## D34. Sample queries
+
+- **I chose six queries** for `sample_queries.sql`, each with an expected-output description:
+  1. emails per sender (top 10; expected top: `david.delainey@enron.com`, 2,961)
+  2. emails in a date range (October 2001)
+  3. emails with Cc recipients (expected 5,471) plus a sample list
+  4. all recipients of one email, by type (shows the normalised tables). I used `skilling-j/inbox/1533.` because it has To, Cc and Bcc; my first pick had only To.
+  5. the unique constraint: inserting an existing `message_id` fails with `UNIQUE constraint failed`
+  6. **(my addition, for later)** duplicate groups: each original with its flagged duplicates and similarity scores, which only returns rows **after Task 3 has run**
+- **Rows affected:** none (queries).
+
+## Task 2, steps 1–3 notes (schema + loader)
+
+- `schema.sql`: `emails`, `addresses`, `email_recipients`; all `IF NOT EXISTS`. Booleans have `CHECK (x IN (0,1))`, and `recipient_type` has `CHECK IN ('to','cc','bcc')`. Indexes: the 3 the spec requires, plus `email_recipients(address_id)`, `emails(is_duplicate)` and `emails(duplicate_of)`.
+- **`duplicate_of` has no `ON DELETE` action, on purpose.** The loader clears pointing rows *before* deleting an original (D30). If the code ever got this wrong, the foreign key would reject the delete instead of silently leaving a dangling reference.
+- `email_recipients.email_id` is `ON DELETE CASCADE`: deleting an email removes its recipient rows.
+- **The upsert only lists the parsed columns** (`EMAIL_COLUMNS`). The five Task 3/4 columns aren't in its `SET` clause, so a re-load can't change them.
+- **Repeats (D29)** are skipped with `INSERT OR IGNORE` against the primary key and counted. 200-record sample: 22 skipped.
+- **The `addresses` table holds recipient addresses only.** `from_address` is a text column (D26), so senders who never *received* mail aren't in `addresses`. The full load has **11,146**; the 13,390 in FINDINGS included senders.
+- **Unused-address cleanup (I approved):** at the end of every load, inside the same transaction, `DELETE FROM addresses WHERE id NOT IN (SELECT address_id FROM email_recipients)`. The count removed is reported. Tested: after 100 sample emails went stale, **263** unused addresses were removed and 0 remained.
+- **Tests on the sample DB** (planted Task 3/4 state, then a smaller load so 100 of 200 emails went stale):
+  - case 1: stale original, no notice → deleted, its duplicate's flags cleared ✔
+  - case 2: stale original of a notified duplicate → kept, duplicate untouched ✔
+  - case 3: stale and notified itself → kept ✔
+  - case 4: live duplicate → flags survive the re-load ✔
+  - `--rebuild` refused (exit 1) ✔
+  - 0 orphan recipients, 0 foreign-key violations
+- The test DB was deleted afterwards (its planted notifications would block `--rebuild`).
+
+## Task 2, step 5 notes (sample queries)
+
+- `sample_queries.sql` runs with `sqlite3 output/enron.db < sample_queries.sql`. Each query has an "Expected output" comment recorded from the full load.
+- Results:
+  - Q1: top sender `david.delainey@enron.com` (2,961)
+  - Q2: 650 emails in October 2001
+  - Q3: 5,471 emails with Cc
+  - Q4: 1 to / 4 cc / 4 bcc
+  - Q5: the INSERT fails with `UNIQUE constraint failed: emails.message_id`
+  - Q6: no rows until Task 3 has run
+- Q5 fails on purpose, so the CLI exits with code 1; this is documented at the top of the file. The DB file's MD5 is identical before and after running the script, so nothing was written.
+- Q3's sample shows the same "Education Survey" email three times (three folders), a live example of the cross-folder copies Task 3 targets.

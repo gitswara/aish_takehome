@@ -21,6 +21,28 @@ data/maildir/{lay-k,skilling-j,whalley-l,lavorato-j,delainey-d}/**   (read-only,
 
 **Regenerating the JSONL:** `output/parsed_emails.jsonl` is git-ignored because it's 51 MB (D23). To rebuild it, run `python src/parse_emails.py` from the project root with the `.venv` active and the Enron data in `data/maildir/`. It takes about 11 seconds. A full run (no `--limit`) also refreshes the committed sample.
 
+## Database (Task 2: D25–D34; schema + loader built)
+
+```
+output/parsed_emails.jsonl ──► src/load_db.py ──► output/enron.db (SQLite, git-ignored)
+                                   │  applies schema.sql (IF NOT EXISTS)
+                                   │  upsert emails ON CONFLICT(message_id): parsed fields only
+                                   │  addresses: insert if new → id
+                                   │  email_recipients: delete + re-insert per email
+                                   └─ stale rows: delete unless notification_sent = 1
+
+emails (id PK, message_id UNIQUE, date, from_address, subject, …,
+        is_duplicate, duplicate_of → emails.message_id, similarity_score,
+        notification_sent, notification_date)
+  └──< email_recipients (email_id, address_id, recipient_type to|cc|bcc) >── addresses (id, address UNIQUE)
+
+sample_queries.sql: 6 queries run against output/enron.db
+```
+
+**Why `duplicate_of` has a foreign key but no `ON DELETE` rule:** it's a safety net. Before deleting a stale original, the loader clears every row that points to it (D30). If a future bug skipped that step, SQLite would **refuse the delete** with a foreign-key error instead of silently leaving a duplicate pointing at an email that no longer exists. Foreign keys are switched on for every connection (`PRAGMA foreign_keys = ON`).
+
+**Run:** `python src/load_db.py` (about 3 s, safe to re-run). `--limit N` loads into `output/sample_run/enron.db`; `--rebuild` starts fresh unless a notification has been sent. `output/enron.db` is 61 MB and git-ignored (`*.db`).
+
 **Tests:** `pytest -q` runs `tests/test_parse_emails.py` (8 edge-case tests, about 0.1 s, no Enron data needed). Each test writes a small fake email and calls `parse_file()`, the same per-file function `main()` uses.
 
 The input files are never modified. Decisions are D4–D14 in DECISIONS.md.

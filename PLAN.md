@@ -25,9 +25,38 @@ Status: `[ ]` todo · `[x]` done. **M** = must-have, **N** = nice-to-have (cut f
 
 After each step: update PLAN.md, DECISIONS.md (counts) and ARCHITECTURE.md, and append the step report to `docs/FINDINGS_task1.md`.
 
+## Task 2: Database (`schema.sql`, `src/load_db.py`, `sample_queries.sql`)
+
+Decisions D25–D34. Findings in `docs/FINDINGS_task2.md`.
+
+1. [x] **M** `schema.sql`:
+   - tables `emails`, `addresses`, `email_recipients` (D26, D27), with the Task 3/4 columns on `emails` (D28)
+   - `UNIQUE(message_id)`; `CHECK` on `recipient_type`
+   - foreign keys
+   - indexes on `date`, `from_address`, `subject` (spec), plus `email_recipients(address_id)` and `emails(is_duplicate)`
+   - every statement `IF NOT EXISTS`
+2. [x] **M** `src/load_db.py`, the load itself:
+   - read the JSONL and apply `schema.sql`
+   - upsert emails without touching Task 3/4 columns (D30)
+   - insert addresses if new and look up their ids
+   - delete + re-insert each email's recipients, skipping repeats (D29)
+   - one transaction; config block at the top
+3. [x] **M** Re-run safety (D30), *tested on the sample DB: all 4 stale/notified cases and the `--rebuild` guard behave as decided*:
+   - report emails in the DB but not in the JSONL; delete them unless `notification_sent = 1` (keep and report those)
+   - `--rebuild` refuses if any notification has been sent
+   - run report: inserted / updated / deleted / kept / recipient rows / repeats skipped
+4. [x] **M** Load all 20,339 (`--limit` first, to a separate DB file as in D24). Check row counts: emails 20,339; addresses 13,390; recipients 191,044 minus repeats. **Run it twice** and confirm the second run gives 0 inserted / 20,339 updated, with Task 3/4 columns unchanged. *Done: 20,339 / 11,146 / 190,390; re-run 0 inserted / 20,339 updated; integrity + FK checks clean.*
+5. [x] **M** `sample_queries.sql`: queries 1–5 with their real outputs written into the expected-output comments (D34). Done; the DB is unchanged after running it (MD5).
+6. [~] **N** Query 6 (duplicate groups): written now (returns no rows yet); **fill its real output after Task 3.**
+7. [ ] **N** pytest: upsert keeps Task 3/4 state; recipients are replaced; a stale row is deleted, but kept if notified; the unique constraint rejects a plain duplicate INSERT.
+
+After each step: update PLAN.md, DECISIONS.md and ARCHITECTURE.md, and append the step report to `docs/FINDINGS_task2.md`.
+
+**Stale originals (D30, decided):** delete the stale email and clear the flags of duplicates pointing to it. But **keep** it if it was notified itself or a notified email points to it ("stale, kept for notification history").
+
 ## Later tasks (planned when I get there)
 
-- Task 2: SQLite schema + loader from JSONL + sample queries
 - Task 3: Duplicate detection (similarity on the full text, D9) + `duplicates_report.csv`
+  - **Sender aliases (found in Task 2):** the same person can have several addresses, e.g. `john.lavorato@enron.com` (2,299 sent) and `lavorato@enron.com` (401). The spec's rule needs the *same* `from_address`, so copies sent from different aliases won't group. **Plan:** follow the spec exactly and document this limitation. **If time allows (N):** report how many duplicate groups would merge if aliases were combined, without changing any flags.
 - Task 4: Draft `.eml` replies + live send via MCP, to my Gmail only
 - README.md and AI_USAGE.md, written at the end. README must say: `output/parsed_emails.jsonl` is git-ignored (D23); regenerate it with `python src/parse_emails.py`; a committed 18-record sample is in `output/sample_parsed_emails.jsonl`. Quote the **parsed** attachment count: **1,149** of 20,339 parsed emails have `has_attachment = true` (1,336 across all processed files). `--limit N` writes to `output/sample_run/` (D24).
