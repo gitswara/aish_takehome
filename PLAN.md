@@ -72,11 +72,37 @@ Decisions D35–D44 (all decided). Findings in `docs/FINDINGS_task3.md`.
 6. [x] **M** Run: `--limit` first (writes to `output/sample_run/`), then the full DB. Check against the estimates (about 4,537 groups / 10,768 flagged, or ~4,558 / ~10,675 with D44). **Run twice:** same flags; notified rows untouched. Spot-check about 5 groups by hand: **at least** a folder-copy group (`same_timestamp`), a later re-send, and a template false positive (Delainey "Approval for reviewer"), plus a 90–95 near match and a blank-subject block. **List their Message-IDs and source files so I can check one myself.** *Done: 6 groups; 11 rows re-scored from the raw files, all match. New finding → D45 (open).*
 7. [x] **M** Fill query 6's real output in `sample_queries.sql` (Task 2 step 6). Done.
 8. [x] **N** pytest: subject normalisation; anchor grouping (no flagged score below 90); tie-break; D44 empty-body rule; notified rows untouched on re-run. *Done: 8 tests + D45/D46 tests; 23 total pass; mutation-checked.*
-9. [ ] **N** D43 alias report: **only after Task 4 works.** Sender aliases (e.g. `john.lavorato@enron.com` 2,299 sent vs `lavorato@enron.com` 401) won't group under the spec's same-`from_address` rule. Follow the spec, document it, and count the groups that would merge if aliases were combined, without changing flags.
+9. [→] **N** D43 alias report: **moved to Task 4, step 10** (after Task 4 works). Sender aliases (e.g. `john.lavorato@enron.com` 2,299 sent vs `lavorato@enron.com` 401) won't group under the spec's same-`from_address` rule. Follow the spec, document it, and count the groups that would merge if aliases were combined, without changing flags.
 
 After each step: update PLAN.md, DECISIONS.md and ARCHITECTURE.md, and append the step report to `docs/FINDINGS_task3.md`.
 
 **Heads-up for Task 4:** one notification per group means about 4,537 emails, but Gmail allows roughly 500 sends a day from a personal account. The live run will need a cap.
+
+## Task 4: Notifications (`src/notify.py`, `main.py`)
+
+Decisions D47–D56 (all decided). Findings in `docs/FINDINGS_task4.md`. **Time: about 10 h left at the start of Task 4 (about hour 14).** Target: Task 4 done by about hour 17, D43 by about hour 18, then README/AI_USAGE and final checks.
+
+1. [ ] **M** Read the targets from the DB:
+   - every flagged duplicate (for drafts)
+   - the target per group = the latest duplicate by (date, source_file) (D39)
+   - `same_timestamp` / `likely_export_copy` / `recipient_overlap`, reusing the functions in `detect_duplicates.py`
+
+   Config block at the top: `MAX_SENDS_DEFAULT = 10`, `MAX_SENDS_LIMIT = 100`, `SEND_DELAY_SECONDS = 1`, retry/backoff, draft `From`, file paths.
+2. [ ] **M** Build the notice: the §4.2 template body; subject per D52; headers per D53 (`References` + `In-Reply-To` = the flagged email's Message-ID); safe file names with a uniqueness check.
+3. [ ] **M** Dry run (default):
+   - clear `output/replies/` and write 10,675 `.eml` drafts (D47, D54); no network, no DB writes
+   - print the counts
+   - **measure the total draft size → apply the D48 rule** (commit all if ≤ ~25 MB, else zip)
+   - spot-check 3 drafts by eye (a folder copy, a real re-send target, a blank subject)
+4. [ ] **M** Live selection (D50): real re-send targets with `notification_sent = 0`, ordered by overlap ↓, score ↓, date ↑; capped by `--max-sends` (D49). **`--send-live --dry-list`-style preview first:** print the chosen targets without sending.
+5. [ ] **M** MCP client (D55): start `gmail_server.py` over stdio, `call_tool("send_email", {to: NOTIFY_TO, subject, body, references})`. Refuse if `NOTIFY_TO` is unset (checked in code; I never read `.env`). Classify errors (auth → stop; quota → stop; transient → retry ×3; else failed). ~1 s pause between sends.
+6. [ ] **M** Record sends (D54): append to `output/send_log.csv` (spec columns + `intended_recipient`, `duplicate_message_id`); after a confirmed send, set `notification_sent = 1` and `notification_date`.
+7. [ ] **M** **Live run with `--max-sends 1` first; you check your inbox**, then the default 10. Confirm: the DB flags are set, a re-run skips sent targets, and Task 2/3 re-runs keep the notified rows (D30/D40). Screenshot/log for AI_USAGE §4.3.
+8. [ ] **M** `main.py`: one command runs parse → load → dedup → notify (dry run unless `--send-live`) (§5).
+9. [ ] **N** pytest (small): subject rule (D52), safe file names, template fields, selection order + cap, `notification_sent` set only on success (with a fake MCP client, no network).
+10. [ ] **N** **D43 alias report, after Task 4 works:** count the groups that would merge if sender aliases were combined (e.g. `john.lavorato@` ↔ `lavorato@`), without changing flags.
+
+After each step: update PLAN.md, DECISIONS.md and ARCHITECTURE.md, and append the step report to `docs/FINDINGS_task4.md`.
 
 ## Later tasks (planned when I get there)
 

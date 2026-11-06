@@ -610,3 +610,62 @@ Findings in `docs/FINDINGS_task3.md`. I accepted all the recommendations for D35
 - `pytest -q`: **23 passed** (8 parser + 7 DB + 8 dedup).
 - **Mutation check:** chaining instead of anchoring → caught; no tie-break → caught; notified rows wiped → caught; no Notes/Outlook condition → caught. For D44: both-empty → fail, one-empty → pass, and no body gate → all caught.
 - **One mutation was not caught, and why that's fine:** replacing the explicit D44 empty-body rule with rapidfuzz's built-in behaviour. In rapidfuzz 3.14.6, `ratio('', '') = 100` and `ratio('text', '') = 0`, which happens to be exactly our rule, so the outcomes are identical. The tests check outcomes. The explicit rule protects us if a library update or a different scorer changed how empty strings score; the tests would then fail.
+
+---
+
+# Task 4: Notification decisions
+
+Findings in `docs/FINDINGS_task4.md`. I accepted the recommendations for D47, D49, D50, D51, D52, D54 and D56. D48, D53 and D55 have my changes below.
+
+## D47. Drafts vs live sends (the spec conflicts with itself)
+- **Conflict:** §4.2 says one notification **per duplicate group** (4,558). §7 says draft `.eml` files for **all flagged duplicates** (10,675).
+- **I chose:** drafts for **every flagged duplicate** (10,675), each filled with that email's own fields. **Live sends only for one target per group** (the latest duplicate), and only the selected ones (D50).
+
+## D48. Committing the drafts (my rule)
+- **I chose:** after generating, **measure the total size** of the 10,675 drafts. Use content bytes, which is what git stores; disk usage overstates small files because of block size.
+  - **≤ ~25 MB:** commit them all as plain files (`output/replies/` is a named deliverable).
+  - **> ~25 MB:** zip into one archive (`output/replies.zip`), commit that, and git-ignore the loose files.
+- **Rows affected:** none (output files). The measured size and the outcome get recorded at build time.
+
+## D49. Live-send cap
+- **I chose:** `--max-sends N`, **default 10**, hard maximum **100** per run (`MAX_SENDS_DEFAULT`, `MAX_SENDS_LIMIT` in the config). Gmail allows about 500/day, and all sends go to one inbox.
+
+## D50. Which targets go live
+- **I chose: real re-sends only** (later than the original, not `likely_export_copy`): **141** targets. Ordered by `recipient_overlap` ↓, then `similarity_score` ↓, then duplicate date ↑. Folder and export copies get drafts only.
+
+## D51. Recipient override
+- **I chose:** live `To` is **always `NOTIFY_TO`**, and the run **refuses** if it's unset. Drafts use the real sender (the template exactly). `send_log.csv` adds `intended_recipient`. The Enron addresses are never contacted.
+
+## D52. Subject line
+- **I chose:** strip existing reply/forward prefixes from the original subject (the D35 regex), then `[Duplicate Notice] Re: <subject>`. A blank subject becomes `[Duplicate Notice] Re: (no subject)`. The body's `Subject:` line keeps the original exactly.
+- **Rows affected:** 1,456 targets avoid `Re: Re:`; 321 blank subjects get `(no subject)`.
+
+## D53. Draft `.eml` format (with my checks)
+- **What the spec says (§4.2, exact wording):** the header is `References: <message_id_of_latest_duplicate>`. It names only **References**, and its value is the Message-ID of the **latest duplicate** (the group's target), not the original.
+- **I chose:**
+  - **`References:` = the flagged email's own Message-ID.** For the group's target draft (and every live send), that *is* `message_id_of_latest_duplicate`, exactly as the spec says. For the other drafts in a group (D47), each draft is about its own flagged email, so it references that email.
+  - **`In-Reply-To:` = the same value.** The spec doesn't list it. I add it so mail clients thread the notice, and because the MCP server sets both for live sends; drafts and sends should match. Documented as a small addition.
+  - Other headers: `From: Email Deduplication System <dedup@localhost>` (config), `To:` (D51), `Subject:` (D52), `Date:` (current UTC, RFC 2822), `Message-ID:` (new, `@dedup.local`), `Content-Type: text/plain; charset=utf-8`.
+  - Body: the §4.2 template exactly. Dates appear as `2001-05-01 00:11:00 UTC`; the score as `100.00%` (full-text score, D41).
+- **Safe file names:** Message-IDs contain `<`, `>` and `@`. File name = the Message-ID with `<` and `>` removed, `@` replaced by `_at_`, and any other character outside `A–Z a–z 0–9 . _ -` replaced by `_`, plus `.eml` (e.g. `12846475.1075854481614.JavaMail.evans_at_thyme.eml`). The generator **checks the names are unique** after this cleanup and stops if two collide.
+
+## D54. Re-run safety
+- **I chose:**
+  - The drafts folder is cleared and rebuilt on every run.
+  - Live: only targets with `notification_sent = 0` are eligible. `notification_sent = 1` and `notification_date` are set **only after a confirmed send**; a failed send leaves the DB unchanged.
+  - `send_log.csv` is append-only, with columns `timestamp, recipient, subject, status, error` (spec) + `intended_recipient, duplicate_message_id`.
+  - With D30/D40, notified rows are never wiped.
+
+## D55. How the pipeline calls MCP (with my change)
+- **I chose:** a Python MCP client over stdio. `src/notify.py` starts `mcp_server/gmail_server.py` with the project's Python, opens one `ClientSession` per run, and calls `send_email` once per selected target, sequentially.
+- **Pause of about 1 second between live sends** (`SEND_DELAY_SECONDS = 1`; my change from the proposed 2 s).
+- **Errors:**
+  - auth (`535`) → stop the run
+  - quota / rate limit (`5.4.5`, `421`, "quota") → stop; the remaining targets stay unsent
+  - transient (timeout, connection) → retry up to 3 times with backoff (2, 4, 8 s)
+  - anything else → log `failed`, continue
+
+  Every outcome is logged.
+
+## D56. Commands
+- **I chose:** `src/notify.py`, **dry run by default** (drafts only, no network, no DB writes); `--send-live [--max-sends N]` sends. Plus a top-level `main.py` that runs parse → load → dedup → notify (dry run unless `--send-live`), for the §5 single command.
