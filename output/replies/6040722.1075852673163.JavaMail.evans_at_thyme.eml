@@ -1,0 +1,31 @@
+From: Email Deduplication System <dedup@localhost>
+To: kenneth.thibodeaux@enron.com
+Subject: [Duplicate Notice] Re: ERV Notification:  (Violation/Notification
+ Memo - 09/19/2001)
+Date: Fri, 06 Nov 2026 02:53:00 +0000
+Message-ID: <179393358094.28556.13221026764818115646@dedup.local>
+References: <6040722.1075852673163.JavaMail.evans@thyme>
+In-Reply-To: <6040722.1075852673163.JavaMail.evans@thyme>
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+MIME-Version: 1.0
+
+This is an automated notification from the Email Deduplication System.
+
+Your email has been identified as a potential duplicate:
+
+  Your Email (Flagged):
+    Message-ID:  <6040722.1075852673163.JavaMail.evans@thyme>
+    Date Sent:   2001-09-20 19:21:43 UTC
+    Subject:     ERV Notification:  (Violation/Notification Memo - 09/19/2001)
+
+  Original Email on Record:
+    Message-ID:  <21055255.1075852673244.JavaMail.evans@thyme>
+    Date Sent:   2001-09-20 12:52:11 UTC
+
+  Similarity Score: 97.87%
+
+If this was NOT a duplicate and you intended to send this email,
+please reply with CONFIRM to restore it to active status.
+
+No action is required if this is indeed a duplicate.

@@ -577,7 +577,7 @@ Findings in `docs/FINDINGS_task3.md`. I accepted all the recommendations for D35
   - Folder pairs: Lavorato `_sent_mail`/`all_documents` (Notes) → `sent_items` (Outlook): 203; Skilling `all_documents` → `inbox`/`deleted_items`: 36.
   - Example: "Re: Canada Positions by Trader", body "Thanks", Notes copy 20:11 vs Outlook copy 08:11 the next day.
   - Widening the gap limit from 14 h to 24 h added no cases (still 254).
-- **Rows affected:** 0 flags changed. Of the 696 later duplicates, **254** are likely export copies, leaving **442 real re-sends**. Task 4 targets (the latest per group): 4,558, of which 389 are later than their original and **141** are real re-sends.
+- **Rows affected:** 0 flags changed. As first built (score = 100, exact hours): 254 export copies, 442 real re-sends, 141 real re-send targets. **After the amendment below** (score ≥ 99, within 60 s): **280 / 416 / 118**.
 
 ## D46. Recipient overlap column
 
@@ -631,7 +631,7 @@ Findings in `docs/FINDINGS_task4.md`. I accepted the recommendations for D47, D4
 - **I chose:** `--max-sends N`, **default 10**, hard maximum **100** per run (`MAX_SENDS_DEFAULT`, `MAX_SENDS_LIMIT` in the config). Gmail allows about 500/day, and all sends go to one inbox.
 
 ## D50. Which targets go live
-- **I chose: real re-sends only** (later than the original, not `likely_export_copy`): **141** targets. Ordered by `recipient_overlap` ↓, then `similarity_score` ↓, then duplicate date ↑. Folder and export copies get drafts only.
+- **I chose: real re-sends only** (later than the original, not `likely_export_copy`): **118** targets after the D45 amendment (141 before). Ordered by `recipient_overlap` ↓, then `similarity_score` ↓, then duplicate date ↑. Folder and export copies get drafts only.
 
 ## D51. Recipient override
 - **I chose:** live `To` is **always `NOTIFY_TO`**, and the run **refuses** if it's unset. Drafts use the real sender (the template exactly). `send_log.csv` adds `intended_recipient`. The Enron addresses are never contacted.
@@ -690,3 +690,55 @@ Findings in `docs/FINDINGS_task4.md`. I accepted the recommendations for D47, D4
 - **A blank subject in the body:** first left empty; **changed after review:** it now also shows `(no subject)`, like the header (D52 amended).
 - **Drafts change on every run:** `Date:` (current time, per the spec) and `Message-ID:` differ on each run, so all 10,675 files show as modified in git after any re-run. **I decided:** commit code and docs now; commit `output/replies/` **once, from the final run**.
 - **`Date:` header:** current time in **UTC with the `+0000` offset**, e.g. `Date: Fri, 06 Nov 2026 02:35:07 +0000` (`email.utils.format_datetime` on a UTC datetime). Verified in the drafts.
+
+## Task 4, steps 4–6 notes (selection, MCP client, send log), built; no sends yet
+
+- **Added to `src/notify.py`:**
+  - `select_live_targets()` (D50 order, D49 cap); `--preview` lists the selection and stops
+  - `send_live()`: one MCP `ClientSession` over stdio to `mcp_server/gmail_server.py`; `call_send_email()` retries transient errors (2/4/8 s); `classify_error()` sorts errors into auth / quota / transient / other; auth or quota stops the run; ~1 s pause between sends
+  - `append_send_log()` (append-only `output/send_log.csv`); `mark_notified()` sets `notification_sent` / `notification_date` only after a confirmed send
+  - `NOTIFY_TO` is read by the program via `python-dotenv` at run time, never printed; the run refuses if it's unset
+- **Checks so far:** `--preview` changes nothing (DB MD5 unchanged; no `send_log.csv` created); `--max-sends 500` is refused (D49).
+
+## D45 amendment: near-100 export copies (found in the live preview)
+
+- **Finding:** the `--preview` top 10 included probable export copies that D45 misses only because it requires a score of **exactly 100**:
+  - #10 Lavorato "2001 ENA/EGM/EIM CUSTOMER SKI PROGRAM": 10:18 → 22:18, +12 h, Notes/Outlook, 99.81
+  - #9 "Clinton Energy Vacation Policy": +9 h, Notes/Outlook, 99.85
+  - #7 Kean "California's dim bulbs": 14:00:00 → 19:00:01, +5 h **plus 1 s**, Notes/Outlook, 99.98
+- **Options measured** (696 later duplicates):
+
+  | Rule | Export copies | Real re-sends | Live-eligible targets |
+  | --- | --- | --- | --- |
+  | (a) as built: score = 100, exact whole hours | 254 | 442 | 141 |
+  | (b) score ≥ 99, exact whole hours | 265 | 431 | 131 |
+  | (c) score ≥ 99, within **60 s** of a whole number of hours (1–24 h) | 280 | 416 | **118** |
+
+- Under (c) the top 10 has no whole-hour Notes/Outlook pairs: double deliveries seconds apart (YPO survey +8 s, PGS +1 s), a 3-month re-send (Hawkes Peers), next-day minutes and invoice reminders, and a campaign mass-mail with identical recipients.
+- **I chose (c): amend D45.** `likely_export_copy = true` when **all** of these hold:
+  1. `similarity_score` **≥ 99** (`EXPORT_COPY_MIN_SCORE`; was exactly 100)
+  2. the gap is **within 60 s** (`EXPORT_COPY_TOLERANCE_SECONDS`) of a whole number of hours **between 1 and 24**
+  3. one copy is in a Notes folder and the other in an Outlook folder (unchanged)
+- **The three examples that prompted it** (all now `likely_export_copy = true`): #10 "2001 ENA/EGM/EIM CUSTOMER SKI PROGRAM" (+12 h, 99.81), #9 "Clinton Energy Vacation Policy" (+9 h, 99.85), #7 "California's dim bulbs" (+5 h + 1 s, 99.98).
+- **Re-run of Task 3 confirms (c):** 280 export copies / **416 real re-sends** / **118 live-eligible targets**.
+- **Flags don't change:** the duplicate flags (`is_duplicate`, `duplicate_of`, `similarity_score`) are byte-identical before and after (hash of every row). Only the report column `likely_export_copy` and the stats change.
+- Tests updated: +12 h at 99.81 → true; +12 h + 1 s → true; +12 h + 61 s → false; score 98.9 → false. 23 pass.
+
+## D57. "Email Deduplication System" display name on live sends
+
+- **Context:** my first live send arrived with `From: swara.awsm@gmail.com` only (see `docs/live_send_proof.png`), while the drafts show "Email Deduplication System".
+- **I chose:** in `mcp_server/gmail_server.py`, `From` = `formataddr(("Email Deduplication System", GMAIL_USER))` → `Email Deduplication System <my Gmail>`, so live sends match the drafts. The sending account is unchanged. `FROM_DISPLAY_NAME` is a constant at the top of the server.
+- **Applies to:** sends 2–10 (the pipeline starts a fresh server process per run); send 1 went out before the change.
+
+## D58. Total live-send budget across runs (Claude added this, flagged it, I approved by asking for 0 on a re-run)
+
+- **Context:** D49 caps sends **per run**. After 10 sends, a further `--send-live` would pick the next 10 new targets (108 eligible), not send 0. It would never send anything *twice*, but it would keep sending.
+- **Change:** `TOTAL_SEND_BUDGET = 10` in `notify.py`, counted from the DB (`notification_sent = 1`). Each run sends at most `min(--max-sends, budget left)`; when the budget is used up, it prints "0 emails sent" and exits.
+- **Why from the DB:** the budget survives restarts and can't drift from what was actually sent.
+
+## Task 4, step 7 notes (live run)
+
+- **Send 1** (`--max-sends 1`): YPO forum survey (the 8-second double delivery). **I checked it myself** in Gmail (subject, body and score correct; `docs/live_send_proof.png`), in `send_log.csv`, and in the DB (`notification_sent = 1`, `notification_date` 03:33:39, the same second as the log row).
+- **Sends 2–10:** PGS Seminars · Hawkes Peers · Rally against terrorism · October 01 Meeting Minutes · Past Due Invoice · Enron Image 2000 Video · Demand Ken Lay Donate Proceeds (×2, different senders) · 5/18/01 Gas Violations FINAL. **9 sent, 0 failed**, about 1 s apart, all to `NOTIFY_TO`.
+- **Proof of no double sends:** a further `--send-live` → "10 of 10 already sent; 0 left … **0 emails sent**". `send_log.csv` has 10 rows, all `sent`, with 10 distinct `duplicate_message_id`s, each matching its DB `notification_date` to the second.
+- **D30/D40 proven on real data:** `python src/load_db.py` (0 inserted, 0 stale) and `python src/detect_duplicates.py` (0 conflicts) left the 10 notified rows byte-identical; `load_db.py --rebuild` was **refused** (10 notified).

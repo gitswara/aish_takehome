@@ -1,0 +1,30 @@
+From: Email Deduplication System <dedup@localhost>
+To: liz.taylor@enron.com
+Subject: [Duplicate Notice] Re: Goals & Objectives for 2001
+Date: Fri, 06 Nov 2026 02:52:58 +0000
+Message-ID: <179393357817.28556.12082540925233831866@dedup.local>
+References: <19792433.1075858064240.JavaMail.evans@thyme>
+In-Reply-To: <19792433.1075858064240.JavaMail.evans@thyme>
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+MIME-Version: 1.0
+
+This is an automated notification from the Email Deduplication System.
+
+Your email has been identified as a potential duplicate:
+
+  Your Email (Flagged):
+    Message-ID:  <19792433.1075858064240.JavaMail.evans@thyme>
+    Date Sent:   2001-02-01 16:33:00 UTC
+    Subject:     Goals & Objectives for 2001
+
+  Original Email on Record:
+    Message-ID:  <4322428.1075858068226.JavaMail.evans@thyme>
+    Date Sent:   2001-02-01 16:33:00 UTC
+
+  Similarity Score: 100.00%
+
+If this was NOT a duplicate and you intended to send this email,
+please reply with CONFIRM to restore it to active status.
+
+No action is required if this is indeed a duplicate.

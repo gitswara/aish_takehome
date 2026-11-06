@@ -67,8 +67,10 @@ output/enron.db ──► src/notify.py (dry run by default)
                      1. flagged pairs (reuses detect_duplicates.read_flagged_pairs) + each group's target
                      2. notice: §4.2 template body · subject per D52 · References/In-Reply-To = flagged Message-ID
                      3. output/replies/<safe Message-ID>.eml × 10,675 (To = original sender; never sent)
-                     (steps 4–7, next) --send-live: real re-send targets → MCP client (stdio) → gmail_server.py
-                                       → send_email(to=NOTIFY_TO) → output/send_log.csv + notification_sent/date
+                     --preview: list live targets (sends nothing)
+                     --send-live: real re-send targets (D50), ≤ --max-sends per run, ≤ 10 in total (D58)
+                       → MCP client (stdio) → mcp_server/gmail_server.py → send_email(to=NOTIFY_TO)
+                       → output/send_log.csv (append) + notification_sent / notification_date
 ```
 
 **Tests:** `pytest -q` runs 15 tests in about 0.1 s, with no Enron data needed:

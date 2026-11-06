@@ -1,0 +1,31 @@
+From: Email Deduplication System <dedup@localhost>
+To: don.miller@enron.com
+Subject:
+ [Duplicate Notice] Re: The sale of the 2000 Peakers to Allegheny is complete
+Date: Fri, 06 Nov 2026 02:52:59 +0000
+Message-ID: <179393357914.28556.11247242313226637491@dedup.local>
+References: <15360552.1075858044658.JavaMail.evans@thyme>
+In-Reply-To: <15360552.1075858044658.JavaMail.evans@thyme>
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+MIME-Version: 1.0
+
+This is an automated notification from the Email Deduplication System.
+
+Your email has been identified as a potential duplicate:
+
+  Your Email (Flagged):
+    Message-ID:  <15360552.1075858044658.JavaMail.evans@thyme>
+    Date Sent:   2001-05-04 14:16:00 UTC
+    Subject:     The sale of the 2000 Peakers to Allegheny is complete
+
+  Original Email on Record:
+    Message-ID:  <10805553.1075858024553.JavaMail.evans@thyme>
+    Date Sent:   2001-05-04 14:16:00 UTC
+
+  Similarity Score: 100.00%
+
+If this was NOT a duplicate and you intended to send this email,
+please reply with CONFIRM to restore it to active status.
+
+No action is required if this is indeed a duplicate.

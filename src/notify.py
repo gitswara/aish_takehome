@@ -1,19 +1,27 @@
 """Task 4: duplicate notifications (draft .eml files; live sends via the Gmail MCP server).
 
-Run:  python src/notify.py                          (dry run: drafts only, no network, no DB writes)
-      python src/notify.py --send-live [--max-sends N]   (steps 4-7: not built yet)
+Run:  python src/notify.py                               (dry run: drafts only, no network, no DB writes)
+      python src/notify.py --preview [--max-sends N]       (list the live targets; sends nothing)
+      python src/notify.py --send-live [--max-sends N]     (send via the Gmail MCP server to NOTIFY_TO)
 
 Decisions D47-D56 in DECISIONS.md.
 """
 
 import argparse
+import asyncio
+import csv
 import os
 import re
 import sqlite3
 import sys
+import time
 from email.message import EmailMessage
 from email.utils import format_datetime, make_msgid
 from datetime import datetime, timezone
+
+from dotenv import load_dotenv
+from mcp import ClientSession, StdioServerParameters
+from mcp.client.stdio import stdio_client
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import detect_duplicates as dd  # noqa: E402  (reuse D39/D45/D46 logic and the D35 regex)
@@ -28,8 +36,19 @@ DRAFT_FROM = "Email Deduplication System <dedup@localhost>"   # D53: drafts are 
 MESSAGE_ID_DOMAIN = "dedup.local"                              # D53
 MAX_SENDS_DEFAULT = 10                                         # D49
 MAX_SENDS_LIMIT = 100                                          # D49
+TOTAL_SEND_BUDGET = 10                                         # D58: live sends across ALL runs (from the DB)
 SEND_DELAY_SECONDS = 1                                         # D55
 DRAFTS_COMMIT_LIMIT_MB = 25                                    # D48: above this, zip the drafts
+SEND_LOG_CSV = os.path.join(PROJECT_ROOT, "output", "send_log.csv")          # D54
+SEND_LOG_COLUMNS = ["timestamp", "recipient", "subject", "status", "error",   # spec columns
+                    "intended_recipient", "duplicate_message_id"]             # D51/D54 extras
+MCP_SERVER = os.path.join(PROJECT_ROOT, "mcp_server", "gmail_server.py")    # D55
+RETRY_DELAYS_SECONDS = [2, 4, 8]                                             # D55: transient errors
+# D55: how to classify an error message coming back from send_email.
+AUTH_ERROR_MARKERS = ["535", "authentication", "username and password not accepted", "gmail_user",
+                      "gmail_app_password"]
+QUOTA_ERROR_MARKERS = ["5.4.5", "421", "quota", "rate limit", "too many"]
+TRANSIENT_ERROR_MARKERS = ["timed out", "timeout", "connection", "temporarily"]
 
 # §4.2 template (body). Placeholders are filled by build_body().
 BODY_TEMPLATE = """This is an automated notification from the Email Deduplication System.
@@ -153,17 +172,151 @@ def write_drafts(notices, folder):
     return len(names), total_bytes
 
 
+# ---------------------------------------------------------------------------
+# Step 4: choose live targets (D50, D49)
+# ---------------------------------------------------------------------------
+def select_live_targets(notices, max_sends):
+    """Real re-send targets not yet notified, ordered by recipient_overlap (high
+    first), then similarity_score (high first), then duplicate date (oldest first)."""
+    eligible = [p for p in notices
+                if p["is_target"] and p["is_real_resend"] and not p["notification_sent"]]
+    eligible.sort(key=lambda p: (-p["recipient_overlap"], -p["similarity_score"], p["duplicate_date"]))
+    return eligible[:max_sends], len(eligible)
+
+
+def print_preview(selected, eligible_count):
+    print(f"Live-eligible real re-send targets not yet notified: {eligible_count}   "
+          f"selected for this run: {len(selected)}")
+    for i, p in enumerate(selected, 1):
+        print(f"{i:3d}. overlap {p['recipient_overlap']:5.1f}  score {p['similarity_score']:6.2f}  "
+              f"{p['from_address']:34s} {notice_subject(p['original_subject'])[:62]}")
+        print(f"     original {p['original_date'][:16]}  ->  duplicate {p['duplicate_date'][:16]}   "
+              f"{p['duplicate_message_id']}")
+
+
+# ---------------------------------------------------------------------------
+# Step 5: send through the Gmail MCP server (D55)
+# ---------------------------------------------------------------------------
+def classify_error(text):
+    """'auth' / 'quota' -> stop the run; 'transient' -> retry; 'other' -> log and continue."""
+    lowered = text.lower()
+    if any(m in lowered for m in AUTH_ERROR_MARKERS):
+        return "auth"
+    if any(m in lowered for m in QUOTA_ERROR_MARKERS):
+        return "quota"
+    if any(m in lowered for m in TRANSIENT_ERROR_MARKERS):
+        return "transient"
+    return "other"
+
+
+async def call_send_email(session, arguments):
+    """One send_email call with retries for transient errors.
+    Returns (ok, kind, text): kind is None on success, else the error class."""
+    for attempt in range(len(RETRY_DELAYS_SECONDS) + 1):
+        result = await session.call_tool("send_email", arguments)
+        text = " ".join(getattr(c, "text", "") for c in result.content).strip()
+        if not result.isError:
+            return True, None, text
+        kind = classify_error(text)
+        if kind != "transient" or attempt == len(RETRY_DELAYS_SECONDS):
+            return False, kind, text
+        await asyncio.sleep(RETRY_DELAYS_SECONDS[attempt])
+
+
+# ---------------------------------------------------------------------------
+# Step 6: record each outcome (D54)
+# ---------------------------------------------------------------------------
+def append_send_log(row):
+    """Append one row to output/send_log.csv (header written once). Never overwrites."""
+    new_file = not os.path.exists(SEND_LOG_CSV)
+    with open(SEND_LOG_CSV, "a", newline="", encoding="utf-8") as f:
+        writer = csv.writer(f)
+        if new_file:
+            writer.writerow(SEND_LOG_COLUMNS)
+        writer.writerow([row[c] for c in SEND_LOG_COLUMNS])
+
+
+def mark_notified(conn, message_id, when):
+    """Set notification_sent / notification_date ONLY after a confirmed send."""
+    with conn:
+        conn.execute("UPDATE emails SET notification_sent = 1, notification_date = ? "
+                     "WHERE message_id = ? AND notification_sent = 0", (when, message_id))
+
+
+async def send_live(conn, selected, notify_to):
+    """Open one MCP session, send each selected notice to NOTIFY_TO, log every outcome.
+    Stops early on auth or quota errors. Returns a summary dict."""
+    summary = {"sent": 0, "failed": 0, "stopped_reason": None}
+    server = StdioServerParameters(command=sys.executable, args=[MCP_SERVER])
+    async with stdio_client(server) as (read, write):
+        async with ClientSession(read, write) as session:
+            await session.initialize()
+            for i, p in enumerate(selected):
+                if i > 0:
+                    time.sleep(SEND_DELAY_SECONDS)                      # D55: ~1 s between sends
+                subject = notice_subject(p["original_subject"])
+                ok, kind, text = await call_send_email(session, {
+                    "to": notify_to, "subject": subject, "body": build_body(p),
+                    "references": p["duplicate_message_id"]})
+                now = datetime.now(timezone.utc).isoformat(timespec="seconds")
+                append_send_log({"timestamp": now, "recipient": notify_to, "subject": subject,
+                                 "status": "sent" if ok else "failed", "error": "" if ok else text,
+                                 "intended_recipient": p["from_address"],
+                                 "duplicate_message_id": p["duplicate_message_id"]})
+                if ok:
+                    mark_notified(conn, p["duplicate_message_id"], now)
+                    summary["sent"] += 1
+                    print(f"  sent {i + 1}/{len(selected)}: {subject[:60]}   ({text})")
+                else:
+                    summary["failed"] += 1
+                    print(f"  FAILED {i + 1}/{len(selected)} [{kind}]: {text[:120]}")
+                    if kind in ("auth", "quota"):
+                        summary["stopped_reason"] = kind
+                        print(f"  Stopping the run ({kind} error); remaining targets stay unsent.")
+                        break
+    return summary
+
+
 def main():
     parser = argparse.ArgumentParser(description="Duplicate notifications (dry run by default).")
     parser.add_argument("--send-live", action="store_true", help="send notices via the Gmail MCP server")
+    parser.add_argument("--preview", action="store_true", help="list the live targets and stop (sends nothing)")
     parser.add_argument("--max-sends", type=int, default=MAX_SENDS_DEFAULT,
                         help=f"live sends per run (default {MAX_SENDS_DEFAULT}, max {MAX_SENDS_LIMIT})")
     args = parser.parse_args()
-    if args.send_live:
-        raise SystemExit("--send-live is not built yet (PLAN.md Task 4 steps 4-7).")
+    if not 1 <= args.max_sends <= MAX_SENDS_LIMIT:
+        raise SystemExit(f"--max-sends must be between 1 and {MAX_SENDS_LIMIT} (D49).")
 
     conn = sqlite3.connect(DB_PATH)
     notices = read_notices(conn)
+
+    if args.preview or args.send_live:
+        # D58: never exceed TOTAL_SEND_BUDGET live sends in total, counted from the DB.
+        already_sent = conn.execute("SELECT COUNT(*) FROM emails WHERE notification_sent = 1").fetchone()[0]
+        budget_left = max(TOTAL_SEND_BUDGET - already_sent, 0)
+        print(f"Live budget (D58): {already_sent} of {TOTAL_SEND_BUDGET} already sent; {budget_left} left")
+        selected, eligible_count = select_live_targets(notices, min(args.max_sends, budget_left))
+        print_preview(selected, eligible_count)
+        if not selected and args.send_live:
+            conn.close()
+            print("Nothing to send (budget used up or no eligible targets). 0 emails sent.")
+            return
+        if args.preview:
+            conn.close()
+            print("Preview only: nothing sent, DB unchanged.")
+            return
+        load_dotenv(os.path.join(PROJECT_ROOT, ".env"))   # the program reads it; values are never printed
+        notify_to = os.environ.get("NOTIFY_TO", "").strip()
+        if not notify_to:
+            conn.close()
+            raise SystemExit("REFUSED: NOTIFY_TO is not set, so there is nowhere safe to send (D51).")
+        print(f"Sending {len(selected)} notice(s) to NOTIFY_TO (never to the original senders, D51) ...")
+        summary = asyncio.run(send_live(conn, selected, notify_to))
+        conn.close()
+        print(f"Live run: sent {summary['sent']}   failed {summary['failed']}"
+              + (f"   stopped early: {summary['stopped_reason']}" if summary["stopped_reason"] else "")
+              + f"   log: {os.path.relpath(SEND_LOG_CSV, PROJECT_ROOT)}")
+        return
     conn.close()
 
     targets = [p for p in notices if p["is_target"]]

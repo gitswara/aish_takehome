@@ -1,5 +1,5 @@
 {
-  "run_at_utc": "2026-11-06T02:15:53+00:00",
+  "run_at_utc": "2026-11-06T03:38:01+00:00",
   "similarity_threshold": 90,
   "scorer": "rapidfuzz fuzz.ratio on full text (body + forwarded + quoted) + D44 body gate",
   "emails": 20339,
@@ -11,8 +11,8 @@
   "largest_group_size": 68,
   "flagged_same_timestamp_as_original": 9979,
   "flagged_later_than_original": 696,
-  "flagged_later_likely_export_copy": 254,
-  "flagged_real_resends": 442,
+  "flagged_later_likely_export_copy": 280,
+  "flagged_real_resends": 416,
   "score_bands": {
     "100": 10293,
     "95_to_under_100": 231,
@@ -26,15 +26,15 @@
     "0": 168
   },
   "recipient_overlap_bands_real_resends": {
-    "100": 246,
-    "50_to_under_100": 67,
-    "over_0_to_under_50": 20,
-    "0": 109
+    "100": 236,
+    "50_to_under_100": 54,
+    "over_0_to_under_50": 18,
+    "0": 108
   },
   "body_gate_rejected_comparisons": 253,
-  "rows_flagged_this_run": 10675,
+  "rows_flagged_this_run": 10665,
   "notified_rows_conflicts": [],
   "task4_targets": 4558,
   "task4_targets_later_than_original": 389,
-  "task4_targets_real_resends": 141
+  "task4_targets_real_resends": 118
 }

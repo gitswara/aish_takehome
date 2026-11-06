@@ -262,3 +262,77 @@ No action is required if this is indeed a duplicate.
 2. **A blank subject in the body:** the body's `Subject:` line keeps the original exactly (empty), and only the header uses `(no subject)` (D52). Draft C shows this.
 3. **Drafts change on every run:** `Date:` is "current timestamp" per the spec, and `Message-ID:` is new each time, so a re-run modifies all 10,675 files in git. Plan: commit the drafts **once, from the final run**.
 4. **`Date:` reads 2026-11-06,** because it's the current time in UTC. Locally it's still Nov 5 evening.
+
+---
+
+## Steps 4–6: selection, MCP client, send log (built); live preview, **no sends yet**
+
+**What I did:** added `select_live_targets()` + `--preview`, the MCP client (`send_live()`, `call_send_email()` with retries, `classify_error()`), `append_send_log()` and `mark_notified()` to `src/notify.py`. `NOTIFY_TO` is read by the program at run time and never printed. The live path stays unexercised until the D45 amendment is decided.
+
+**Checks:** `--preview` leaves the DB unchanged (MD5) and creates no `send_log.csv`; `--max-sends 500` → refused (D49).
+
+**Preview as built (D45 = exact 100), top 10 of 141:** three entries are probable export copies (#7 +5 h + 1 s, #9 +9 h, #10 +12 h; all Notes/Outlook pairs scoring 99.8–99.98). D45 misses them because it requires exactly 100.
+
+**D45 amendment options** (measured):
+
+| Rule | Export copies (of 696 later) | Real re-sends | Live-eligible targets |
+| --- | --- | --- | --- |
+| (a) score = 100, exact whole hours (as built) | 254 | 442 | 141 |
+| (b) score ≥ 99, exact whole hours | 265 | 431 | 131 |
+| (c) score ≥ 99, within 60 s of whole hours (1–24 h) | 280 | 416 | **118** |
+
+**Preview under (c), top 10** (overlap, score, sender, original → duplicate):
+
+| # | Overlap | Score | Sender | Original → duplicate | Subject |
+| --- | --- | --- | --- | --- | --- |
+| 1 | 100 | 100.00 | ypoforumsurvey@ypoforumdiagnosticsurvey.com | 2001-08-20 15:29:43 → 15:29:51 | Your online YPO forum survey |
+| 2 | 100 | 100.00 | john@pgsenergy.com | 2001-09-23 17:45:07 → 17:45:08 | Last PGS Seminars Until October |
+| 3 | 100 | 100.00 | georgette@hawkespeers.com | 2001-07-18 → 2001-10-17 | Hawkes Peers & Co. |
+| 4 | 100 | 100.00 | fatimapr@softcom.ca | 2001-10-26 21:56 → 22:28 | RALLY AGAINT TERRORISM |
+| 5 | 100 | 100.00 | ccox@businesscouncil.com | 2001-11-05 18:16 → 11-06 15:58 | October 01 Meeting Minutes |
+| 6 | 100 | 100.00 | ipayit@enron.com | 2002-03-07 08:05:07 → 03-08 08:05:02 | Action Requested: Past Due Invoice |
+| 7 | 100 | 99.96 | public.relations@enron.com | 2000-10-05 18:11 → 18:32 | Enron Image 2000 Video is Here |
+| 8 | 100 | 99.77 | doctorbonner@altavista.com | 2002-01-30 17:51:16 → 17:51:18 | Demand Ken Lay Donate Proceeds… |
+| 9 | 100 | 99.71 | kenneth.thibodeaux@enron.com | 2001-05-21 17:57 → 18:07 | RE: 5/18/01 Gas Violations FINAL |
+| 10 | 100 | 99.65 | skinnerj@central.edu | 2002-01-30 17:45:01 → 17:45:03 | Demand Ken Lay Donate Proceeds… |
+
+**Decision pending.** The first live send uses `--max-sends 1` (target #1 of whichever list is chosen), so you can check your inbox before the rest.
+
+---
+
+## Step 7: Live run
+
+**Send 1:** `python src/notify.py --send-live --max-sends 1` → the YPO forum survey notice (8-second double delivery). **Verified by me in Gmail** (`docs/live_send_proof.png`): subject, body and score 100.00% correct; `send_log.csv` and the DB agree to the second (03:33:39 UTC).
+
+**Changes before the rest:**
+- **D57:** live `From` = "Email Deduplication System <my Gmail>" (the screenshot showed only the bare address).
+- **D58:** a total live budget of 10, counted from the DB, so a re-run can send 0.
+
+**Sends 2–10:** 9 sent, 0 failed, about 1 s apart, all to `NOTIFY_TO`.
+
+| # | Intended sender | Subject |
+| --- | --- | --- |
+| 1 | ypoforumsurvey@ypoforumdiagnosticsurvey.com | Your online YPO forum survey -- complete in 3 easy steps! |
+| 2 | john@pgsenergy.com | Last PGS Seminars Until October |
+| 3 | georgette@hawkespeers.com | Hawkes Peers & Co. |
+| 4 | fatimapr@softcom.ca | RALLY AGAINT TERRORISM |
+| 5 | ccox@businesscouncil.com | October 01 Meeting Minutes |
+| 6 | ipayit@enron.com | Action Requested: Past Due Invoice for User: |
+| 7 | public.relations@enron.com | Enron Image 2000 Video is Here |
+| 8 | doctorbonner@altavista.com | Demand Ken Lay Donate Proceeds from Enron Stock Sales |
+| 9 | kenneth.thibodeaux@enron.com | RE: 5/18/01 Gas Violations FINAL |
+| 10 | skinnerj@central.edu | Demand Ken Lay Donate Proceeds from Enron Stock Sales |
+
+**Proof of re-run safety:**
+
+| Check | Result |
+| --- | --- |
+| Re-run `--send-live` | "10 of 10 already sent; 0 left … **0 emails sent**" ✔ |
+| `send_log.csv` | 10 rows, all `sent`, 10 distinct targets; each matches its DB `notification_date` to the second ✔ |
+| `python src/load_db.py` | 0 inserted / 0 stale; the 10 notified rows byte-identical ✔ |
+| `python src/detect_duplicates.py` | 0 conflicts; notified rows byte-identical ✔ |
+| `python src/load_db.py --rebuild` | **REFUSED** (10 emails have `notification_sent = 1`) ✔ |
+
+**Unexpected / not sure:**
+1. **The cap was per run** (D49), so "re-run sends 0" needed a total budget (D58). Added and flagged before any further sends.
+2. **Server log lines:** the MCP server prints "Processing request of type CallToolRequest" to stderr for each call. That's harmless; it comes from the `mcp` library.

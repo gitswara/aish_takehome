@@ -1,0 +1,30 @@
+From: Email Deduplication System <dedup@localhost>
+To: karen.denne@enron.com
+Subject: [Duplicate Notice] Re: Investor's Business Daily Interview
+Date: Fri, 06 Nov 2026 02:52:55 +0000
+Message-ID: <179393357520.28556.1090714123976610633@dedup.local>
+References: <14962131.1075840275222.JavaMail.evans@thyme>
+In-Reply-To: <14962131.1075840275222.JavaMail.evans@thyme>
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+MIME-Version: 1.0
+
+This is an automated notification from the Email Deduplication System.
+
+Your email has been identified as a potential duplicate:
+
+  Your Email (Flagged):
+    Message-ID:  <14962131.1075840275222.JavaMail.evans@thyme>
+    Date Sent:   2000-11-28 10:56:00 UTC
+    Subject:     Investor's Business Daily Interview
+
+  Original Email on Record:
+    Message-ID:  <31261706.1075840225781.JavaMail.evans@thyme>
+    Date Sent:   2000-11-28 10:56:00 UTC
+
+  Similarity Score: 100.00%
+
+If this was NOT a duplicate and you intended to send this email,
+please reply with CONFIRM to restore it to active status.
+
+No action is required if this is indeed a duplicate.

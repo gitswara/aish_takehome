@@ -1,0 +1,30 @@
+From: Email Deduplication System <dedup@localhost>
+To: john.lavorato@enron.com
+Subject: [Duplicate Notice] Re: Enron Direct Canada-First Deal
+Date: Fri, 06 Nov 2026 02:52:57 +0000
+Message-ID: <179393357782.28556.15178882743642952671@dedup.local>
+References: <24414965.1075845563948.JavaMail.evans@thyme>
+In-Reply-To: <24414965.1075845563948.JavaMail.evans@thyme>
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+MIME-Version: 1.0
+
+This is an automated notification from the Email Deduplication System.
+
+Your email has been identified as a potential duplicate:
+
+  Your Email (Flagged):
+    Message-ID:  <24414965.1075845563948.JavaMail.evans@thyme>
+    Date Sent:   2001-01-07 21:29:00 UTC
+    Subject:     Re: Enron Direct Canada-First Deal
+
+  Original Email on Record:
+    Message-ID:  <14854204.1075845545897.JavaMail.evans@thyme>
+    Date Sent:   2001-01-07 21:29:00 UTC
+
+  Similarity Score: 100.00%
+
+If this was NOT a duplicate and you intended to send this email,
+please reply with CONFIRM to restore it to active status.
+
+No action is required if this is indeed a duplicate.

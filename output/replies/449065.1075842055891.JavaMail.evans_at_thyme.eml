@@ -1,0 +1,30 @@
+From: Email Deduplication System <dedup@localhost>
+To: nicki.daw@enron.com
+Subject: [Duplicate Notice] Re: HOLIDAY PARTY THANKS
+Date: Fri, 06 Nov 2026 02:52:56 +0000
+Message-ID: <179393357671.28556.17194826493804788181@dedup.local>
+References: <449065.1075842055891.JavaMail.evans@thyme>
+In-Reply-To: <449065.1075842055891.JavaMail.evans@thyme>
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+MIME-Version: 1.0
+
+This is an automated notification from the Email Deduplication System.
+
+Your email has been identified as a potential duplicate:
+
+  Your Email (Flagged):
+    Message-ID:  <449065.1075842055891.JavaMail.evans@thyme>
+    Date Sent:   2000-12-11 17:16:00 UTC
+    Subject:     Re: HOLIDAY PARTY THANKS
+
+  Original Email on Record:
+    Message-ID:  <12481513.1075842040076.JavaMail.evans@thyme>
+    Date Sent:   2000-12-11 17:16:00 UTC
+
+  Similarity Score: 100.00%
+
+If this was NOT a duplicate and you intended to send this email,
+please reply with CONFIRM to restore it to active status.
+
+No action is required if this is indeed a duplicate.

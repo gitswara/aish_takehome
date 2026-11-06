@@ -1,0 +1,30 @@
+From: Email Deduplication System <dedup@localhost>
+To: chairman.ken@enron.com
+Subject: [Duplicate Notice] Re: Overview of Investor Conference Call
+Date: Fri, 06 Nov 2026 02:53:01 +0000
+Message-ID: <179393358106.28556.7549540551112283097@dedup.local>
+References: <6327264.1075862889440.JavaMail.evans@thyme>
+In-Reply-To: <6327264.1075862889440.JavaMail.evans@thyme>
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+MIME-Version: 1.0
+
+This is an automated notification from the Email Deduplication System.
+
+Your email has been identified as a potential duplicate:
+
+  Your Email (Flagged):
+    Message-ID:  <6327264.1075862889440.JavaMail.evans@thyme>
+    Date Sent:   2001-11-15 03:26:42 UTC
+    Subject:     Overview of Investor Conference Call
+
+  Original Email on Record:
+    Message-ID:  <3335072.1075861701925.JavaMail.evans@thyme>
+    Date Sent:   2001-11-15 03:26:42 UTC
+
+  Similarity Score: 100.00%
+
+If this was NOT a duplicate and you intended to send this email,
+please reply with CONFIRM to restore it to active status.
+
+No action is required if this is indeed a duplicate.

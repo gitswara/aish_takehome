@@ -1,0 +1,30 @@
+From: Email Deduplication System <dedup@localhost>
+To: liz.taylor@enron.com
+Subject: [Duplicate Notice] Re: Cuiaba review- Tuesday, April 17th
+Date: Fri, 06 Nov 2026 02:52:58 +0000
+Message-ID: <179393357894.28556.8520444029024220710@dedup.local>
+References: <15882174.1075858063384.JavaMail.evans@thyme>
+In-Reply-To: <15882174.1075858063384.JavaMail.evans@thyme>
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+MIME-Version: 1.0
+
+This is an automated notification from the Email Deduplication System.
+
+Your email has been identified as a potential duplicate:
+
+  Your Email (Flagged):
+    Message-ID:  <15882174.1075858063384.JavaMail.evans@thyme>
+    Date Sent:   2001-04-11 12:55:00 UTC
+    Subject:     Re: Cuiaba review- Tuesday, April 17th
+
+  Original Email on Record:
+    Message-ID:  <190527.1075858067366.JavaMail.evans@thyme>
+    Date Sent:   2001-04-11 12:55:00 UTC
+
+  Similarity Score: 100.00%
+
+If this was NOT a duplicate and you intended to send this email,
+please reply with CONFIRM to restore it to active status.
+
+No action is required if this is indeed a duplicate.

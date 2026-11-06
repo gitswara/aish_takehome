@@ -1,0 +1,30 @@
+From: Email Deduplication System <dedup@localhost>
+To: rosalee.fleming@enron.com
+Subject: [Duplicate Notice] Re: one more photo reminder
+Date: Fri, 06 Nov 2026 02:52:49 +0000
+Message-ID: <179393356910.28556.7315090350492217124@dedup.local>
+References: <15190066.1075840202830.JavaMail.evans@thyme>
+In-Reply-To: <15190066.1075840202830.JavaMail.evans@thyme>
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+MIME-Version: 1.0
+
+This is an automated notification from the Email Deduplication System.
+
+Your email has been identified as a potential duplicate:
+
+  Your Email (Flagged):
+    Message-ID:  <15190066.1075840202830.JavaMail.evans@thyme>
+    Date Sent:   2000-04-18 18:51:00 UTC
+    Subject:     Re: FW: one more photo reminder
+
+  Original Email on Record:
+    Message-ID:  <26609519.1075840284077.JavaMail.evans@thyme>
+    Date Sent:   2000-04-18 18:51:00 UTC
+
+  Similarity Score: 100.00%
+
+If this was NOT a duplicate and you intended to send this email,
+please reply with CONFIRM to restore it to active status.
+
+No action is required if this is indeed a duplicate.

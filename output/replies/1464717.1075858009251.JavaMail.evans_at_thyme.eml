@@ -1,0 +1,30 @@
+From: Email Deduplication System <dedup@localhost>
+To: greg.whalley@enron.com
+Subject: [Duplicate Notice] Re: fractional spreadsheet
+Date: Fri, 06 Nov 2026 02:52:53 +0000
+Message-ID: <179393357390.28556.11225822201645031596@dedup.local>
+References: <1464717.1075858009251.JavaMail.evans@thyme>
+In-Reply-To: <1464717.1075858009251.JavaMail.evans@thyme>
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+MIME-Version: 1.0
+
+This is an automated notification from the Email Deduplication System.
+
+Your email has been identified as a potential duplicate:
+
+  Your Email (Flagged):
+    Message-ID:  <1464717.1075858009251.JavaMail.evans@thyme>
+    Date Sent:   2000-11-06 09:17:00 UTC
+    Subject:     fractional spreadsheet
+
+  Original Email on Record:
+    Message-ID:  <13449271.1075858012097.JavaMail.evans@thyme>
+    Date Sent:   2000-11-06 09:17:00 UTC
+
+  Similarity Score: 100.00%
+
+If this was NOT a duplicate and you intended to send this email,
+please reply with CONFIRM to restore it to active status.
+
+No action is required if this is indeed a duplicate.

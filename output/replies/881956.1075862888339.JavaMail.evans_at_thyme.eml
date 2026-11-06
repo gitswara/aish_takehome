@@ -1,0 +1,30 @@
+From: Email Deduplication System <dedup@localhost>
+To: chairman.ken@enron.com
+Subject: [Duplicate Notice] Re: Change of Control Provisions
+Date: Fri, 06 Nov 2026 02:53:01 +0000
+Message-ID: <179393358106.28556.17594160202979553979@dedup.local>
+References: <881956.1075862888339.JavaMail.evans@thyme>
+In-Reply-To: <881956.1075862888339.JavaMail.evans@thyme>
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+MIME-Version: 1.0
+
+This is an automated notification from the Email Deduplication System.
+
+Your email has been identified as a potential duplicate:
+
+  Your Email (Flagged):
+    Message-ID:  <881956.1075862888339.JavaMail.evans@thyme>
+    Date Sent:   2001-11-14 00:15:18 UTC
+    Subject:     Change of Control Provisions
+
+  Original Email on Record:
+    Message-ID:  <15511068.1075861704251.JavaMail.evans@thyme>
+    Date Sent:   2001-11-14 00:15:18 UTC
+
+  Similarity Score: 100.00%
+
+If this was NOT a duplicate and you intended to send this email,
+please reply with CONFIRM to restore it to active status.
+
+No action is required if this is indeed a duplicate.

@@ -1,0 +1,30 @@
+From: Email Deduplication System <dedup@localhost>
+To: louise.kitchen@enron.com
+Subject: [Duplicate Notice] Re: IT Consulting Firms
+Date: Fri, 06 Nov 2026 02:52:55 +0000
+Message-ID: <179393357531.28556.12949694154987020802@dedup.local>
+References: <20928996.1075857995606.JavaMail.evans@thyme>
+In-Reply-To: <20928996.1075857995606.JavaMail.evans@thyme>
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+MIME-Version: 1.0
+
+This is an automated notification from the Email Deduplication System.
+
+Your email has been identified as a potential duplicate:
+
+  Your Email (Flagged):
+    Message-ID:  <20928996.1075857995606.JavaMail.evans@thyme>
+    Date Sent:   2000-11-28 18:02:00 UTC
+    Subject:     Re: IT Consulting Firms
+
+  Original Email on Record:
+    Message-ID:  <12840867.1075857978512.JavaMail.evans@thyme>
+    Date Sent:   2000-11-28 18:02:00 UTC
+
+  Similarity Score: 100.00%
+
+If this was NOT a duplicate and you intended to send this email,
+please reply with CONFIRM to restore it to active status.
+
+No action is required if this is indeed a duplicate.

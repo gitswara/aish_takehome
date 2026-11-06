@@ -1,0 +1,30 @@
+From: Email Deduplication System <dedup@localhost>
+To: david.oxley@enron.com
+Subject: [Duplicate Notice] Re: Ed Graham
+Date: Fri, 06 Nov 2026 02:52:58 +0000
+Message-ID: <179393357803.28556.16069844265410049374@dedup.local>
+References: <20667663.1075845548525.JavaMail.evans@thyme>
+In-Reply-To: <20667663.1075845548525.JavaMail.evans@thyme>
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+MIME-Version: 1.0
+
+This is an automated notification from the Email Deduplication System.
+
+Your email has been identified as a potential duplicate:
+
+  Your Email (Flagged):
+    Message-ID:  <20667663.1075845548525.JavaMail.evans@thyme>
+    Date Sent:   2001-01-22 08:47:00 UTC
+    Subject:     Re: Ed Graham
+
+  Original Email on Record:
+    Message-ID:  <15456474.1075845546991.JavaMail.evans@thyme>
+    Date Sent:   2001-01-22 08:47:00 UTC
+
+  Similarity Score: 100.00%
+
+If this was NOT a duplicate and you intended to send this email,
+please reply with CONFIRM to restore it to active status.
+
+No action is required if this is indeed a duplicate.

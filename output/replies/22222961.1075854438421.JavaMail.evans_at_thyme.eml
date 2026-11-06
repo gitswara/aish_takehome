@@ -1,0 +1,30 @@
+From: Email Deduplication System <dedup@localhost>
+To: beverly.stephens@enron.com
+Subject: [Duplicate Notice] Re: Industrial QBR
+Date: Fri, 06 Nov 2026 02:52:51 +0000
+Message-ID: <179393357103.28556.2539788713870112492@dedup.local>
+References: <22222961.1075854438421.JavaMail.evans@thyme>
+In-Reply-To: <22222961.1075854438421.JavaMail.evans@thyme>
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+MIME-Version: 1.0
+
+This is an automated notification from the Email Deduplication System.
+
+Your email has been identified as a potential duplicate:
+
+  Your Email (Flagged):
+    Message-ID:  <22222961.1075854438421.JavaMail.evans@thyme>
+    Date Sent:   2000-08-11 12:39:00 UTC
+    Subject:     Industrial QBR
+
+  Original Email on Record:
+    Message-ID:  <27365203.1075854488121.JavaMail.evans@thyme>
+    Date Sent:   2000-08-11 12:39:00 UTC
+
+  Similarity Score: 100.00%
+
+If this was NOT a duplicate and you intended to send this email,
+please reply with CONFIRM to restore it to active status.
+
+No action is required if this is indeed a duplicate.

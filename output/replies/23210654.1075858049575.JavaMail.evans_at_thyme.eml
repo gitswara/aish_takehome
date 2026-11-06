@@ -1,0 +1,30 @@
+From: Email Deduplication System <dedup@localhost>
+To: perfmgmt@enron.com
+Subject: [Duplicate Notice] Re: Mid-Year 2001 Performance Feedback
+Date: Fri, 06 Nov 2026 02:52:59 +0000
+Message-ID: <179393357965.28556.12947600298566953128@dedup.local>
+References: <23210654.1075858049575.JavaMail.evans@thyme>
+In-Reply-To: <23210654.1075858049575.JavaMail.evans@thyme>
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+MIME-Version: 1.0
+
+This is an automated notification from the Email Deduplication System.
+
+Your email has been identified as a potential duplicate:
+
+  Your Email (Flagged):
+    Message-ID:  <23210654.1075858049575.JavaMail.evans@thyme>
+    Date Sent:   2001-05-23 23:41:00 UTC
+    Subject:     Mid-Year 2001 Performance Feedback
+
+  Original Email on Record:
+    Message-ID:  <5335845.1075845494029.JavaMail.evans@thyme>
+    Date Sent:   2001-05-14 17:58:00 UTC
+
+  Similarity Score: 93.62%
+
+If this was NOT a duplicate and you intended to send this email,
+please reply with CONFIRM to restore it to active status.
+
+No action is required if this is indeed a duplicate.

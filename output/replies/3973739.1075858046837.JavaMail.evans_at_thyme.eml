@@ -1,0 +1,30 @@
+From: Email Deduplication System <dedup@localhost>
+To: kate.cole@enron.com
+Subject: [Duplicate Notice] Re: Sale of East Coast Power L.L.C.
+Date: Fri, 06 Nov 2026 02:52:59 +0000
+Message-ID: <179393357994.28556.16108602626965969718@dedup.local>
+References: <3973739.1075858046837.JavaMail.evans@thyme>
+In-Reply-To: <3973739.1075858046837.JavaMail.evans@thyme>
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+MIME-Version: 1.0
+
+This is an automated notification from the Email Deduplication System.
+
+Your email has been identified as a potential duplicate:
+
+  Your Email (Flagged):
+    Message-ID:  <3973739.1075858046837.JavaMail.evans@thyme>
+    Date Sent:   2001-05-16 17:26:00 UTC
+    Subject:     Sale of East Coast Power L.L.C.
+
+  Original Email on Record:
+    Message-ID:  <2419062.1075858022260.JavaMail.evans@thyme>
+    Date Sent:   2001-05-16 17:26:00 UTC
+
+  Similarity Score: 100.00%
+
+If this was NOT a duplicate and you intended to send this email,
+please reply with CONFIRM to restore it to active status.
+
+No action is required if this is indeed a duplicate.

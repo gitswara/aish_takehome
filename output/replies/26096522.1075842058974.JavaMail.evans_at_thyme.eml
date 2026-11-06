@@ -1,0 +1,30 @@
+From: Email Deduplication System <dedup@localhost>
+To: andy.zipper@enron.com
+Subject: [Duplicate Notice] Re: eSpeed Dash
+Date: Fri, 06 Nov 2026 02:52:56 +0000
+Message-ID: <179393357609.28556.4604021452304771852@dedup.local>
+References: <26096522.1075842058974.JavaMail.evans@thyme>
+In-Reply-To: <26096522.1075842058974.JavaMail.evans@thyme>
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+MIME-Version: 1.0
+
+This is an automated notification from the Email Deduplication System.
+
+Your email has been identified as a potential duplicate:
+
+  Your Email (Flagged):
+    Message-ID:  <26096522.1075842058974.JavaMail.evans@thyme>
+    Date Sent:   2000-12-05 11:56:00 UTC
+    Subject:     eSpeed Dash
+
+  Original Email on Record:
+    Message-ID:  <21889822.1075842038619.JavaMail.evans@thyme>
+    Date Sent:   2000-12-05 11:56:00 UTC
+
+  Similarity Score: 100.00%
+
+If this was NOT a duplicate and you intended to send this email,
+please reply with CONFIRM to restore it to active status.
+
+No action is required if this is indeed a duplicate.

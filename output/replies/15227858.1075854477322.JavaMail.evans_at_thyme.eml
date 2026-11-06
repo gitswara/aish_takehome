@@ -1,0 +1,30 @@
+From: Email Deduplication System <dedup@localhost>
+To: david.delainey@enron.com
+Subject: [Duplicate Notice] Re: Master Turbine List
+Date: Fri, 06 Nov 2026 02:52:49 +0000
+Message-ID: <179393356958.28556.9525828939327526700@dedup.local>
+References: <15227858.1075854477322.JavaMail.evans@thyme>
+In-Reply-To: <15227858.1075854477322.JavaMail.evans@thyme>
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+MIME-Version: 1.0
+
+This is an automated notification from the Email Deduplication System.
+
+Your email has been identified as a potential duplicate:
+
+  Your Email (Flagged):
+    Message-ID:  <15227858.1075854477322.JavaMail.evans@thyme>
+    Date Sent:   2000-05-26 20:39:00 UTC
+    Subject:     Master Turbine List
+
+  Original Email on Record:
+    Message-ID:  <7286463.1075854493798.JavaMail.evans@thyme>
+    Date Sent:   2000-05-26 20:39:00 UTC
+
+  Similarity Score: 100.00%
+
+If this was NOT a duplicate and you intended to send this email,
+please reply with CONFIRM to restore it to active status.
+
+No action is required if this is indeed a duplicate.

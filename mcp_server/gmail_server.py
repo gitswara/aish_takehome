@@ -6,7 +6,7 @@ Reads GMAIL_USER and GMAIL_APP_PASSWORD from the project's .env file.
 import os
 import smtplib
 from email.message import EmailMessage
-from email.utils import formatdate, make_msgid
+from email.utils import formataddr, formatdate, make_msgid
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -15,6 +15,8 @@ from mcp.server.fastmcp import FastMCP
 load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
 mcp = FastMCP("gmail")
+
+FROM_DISPLAY_NAME = "Email Deduplication System"   # D57: matches the draft .eml files
 
 
 @mcp.tool()
@@ -29,7 +31,7 @@ def send_email(to: str, subject: str, body: str, references: str = "") -> str:
     """
     user = os.environ["GMAIL_USER"]
     msg = EmailMessage()
-    msg["From"] = user
+    msg["From"] = formataddr((FROM_DISPLAY_NAME, user))   # "Email Deduplication System <user>"
     msg["To"] = to
     msg["Subject"] = subject
     msg["Date"] = formatdate(localtime=False, usegmt=True)

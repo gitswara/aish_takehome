@@ -1,0 +1,30 @@
+From: Email Deduplication System <dedup@localhost>
+To: liz.taylor@enron.com
+Subject: [Duplicate Notice] Re: Australia DPR 21 Jan 00
+Date: Fri, 06 Nov 2026 02:52:48 +0000
+Message-ID: <179393356870.28556.16449543842152164797@dedup.local>
+References: <4550106.1075857986806.JavaMail.evans@thyme>
+In-Reply-To: <4550106.1075857986806.JavaMail.evans@thyme>
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+MIME-Version: 1.0
+
+This is an automated notification from the Email Deduplication System.
+
+Your email has been identified as a potential duplicate:
+
+  Your Email (Flagged):
+    Message-ID:  <4550106.1075857986806.JavaMail.evans@thyme>
+    Date Sent:   2000-01-25 18:33:00 UTC
+    Subject:     Re: Australia DPR 21 Jan 00
+
+  Original Email on Record:
+    Message-ID:  <3277908.1075858014436.JavaMail.evans@thyme>
+    Date Sent:   2000-01-25 18:33:00 UTC
+
+  Similarity Score: 100.00%
+
+If this was NOT a duplicate and you intended to send this email,
+please reply with CONFIRM to restore it to active status.
+
+No action is required if this is indeed a duplicate.

@@ -123,8 +123,12 @@ def test_likely_export_copy():
     assert dd.likely_export_copy("2000-11-26T08:11:00+00:00", orig, 100.0, outlook, notes) is True   # +12 h
     assert dd.likely_export_copy("2000-11-28T20:11:00+00:00", orig, 100.0, outlook, notes) is False  # 3 days
     assert dd.likely_export_copy("2000-11-26T08:11:00+00:00", orig, 100.0, notes, notes) is False    # same kind
-    assert dd.likely_export_copy("2000-11-26T08:11:00+00:00", orig, 99.5, outlook, notes) is False   # not 100
     assert dd.likely_export_copy("2000-11-26T08:41:00+00:00", orig, 100.0, outlook, notes) is False  # 12.5 h
+    # D45 amendment: score >= 99 and a gap within 60 s of whole hours
+    assert dd.likely_export_copy("2000-11-26T08:11:00+00:00", orig, 99.81, outlook, notes) is True   # #10-like
+    assert dd.likely_export_copy("2000-11-26T08:11:01+00:00", orig, 99.98, outlook, notes) is True   # +12 h + 1 s
+    assert dd.likely_export_copy("2000-11-26T08:12:01+00:00", orig, 100.0, outlook, notes) is False  # +12 h + 61 s
+    assert dd.likely_export_copy("2000-11-26T08:11:00+00:00", orig, 98.9, outlook, notes) is False   # score < 99
 
 
 # --- D46: recipient_overlap -------------------------------------------------------

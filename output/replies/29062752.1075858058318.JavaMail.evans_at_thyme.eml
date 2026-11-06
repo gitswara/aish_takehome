@@ -1,0 +1,30 @@
+From: Email Deduplication System <dedup@localhost>
+To: robert.johnston@enron.com
+Subject: [Duplicate Notice] Re: California 5/24
+Date: Fri, 06 Nov 2026 02:53:00 +0000
+Message-ID: <179393358027.28556.2306904488197681596@dedup.local>
+References: <29062752.1075858058318.JavaMail.evans@thyme>
+In-Reply-To: <29062752.1075858058318.JavaMail.evans@thyme>
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+MIME-Version: 1.0
+
+This is an automated notification from the Email Deduplication System.
+
+Your email has been identified as a potential duplicate:
+
+  Your Email (Flagged):
+    Message-ID:  <29062752.1075858058318.JavaMail.evans@thyme>
+    Date Sent:   2001-05-24 11:49:00 UTC
+    Subject:     California 5/24
+
+  Original Email on Record:
+    Message-ID:  <15790159.1075858019395.JavaMail.evans@thyme>
+    Date Sent:   2001-05-24 11:49:00 UTC
+
+  Similarity Score: 100.00%
+
+If this was NOT a duplicate and you intended to send this email,
+please reply with CONFIRM to restore it to active status.
+
+No action is required if this is indeed a duplicate.

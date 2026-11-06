@@ -1,0 +1,30 @@
+From: Email Deduplication System <dedup@localhost>
+To: lydia.cannon@enron.com
+Subject: [Duplicate Notice] Re: Celebrate EnronOnline's Millionth Transaction
+Date: Fri, 06 Nov 2026 02:53:00 +0000
+Message-ID: <179393358035.28556.7339311791619919507@dedup.local>
+References: <21094909.1075858057392.JavaMail.evans@thyme>
+In-Reply-To: <21094909.1075858057392.JavaMail.evans@thyme>
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+MIME-Version: 1.0
+
+This is an automated notification from the Email Deduplication System.
+
+Your email has been identified as a potential duplicate:
+
+  Your Email (Flagged):
+    Message-ID:  <21094909.1075858057392.JavaMail.evans@thyme>
+    Date Sent:   2001-05-25 15:22:00 UTC
+    Subject:     Celebrate EnronOnline's Millionth Transaction
+
+  Original Email on Record:
+    Message-ID:  <3245741.1075858018479.JavaMail.evans@thyme>
+    Date Sent:   2001-05-25 15:22:00 UTC
+
+  Similarity Score: 100.00%
+
+If this was NOT a duplicate and you intended to send this email,
+please reply with CONFIRM to restore it to active status.
+
+No action is required if this is indeed a duplicate.

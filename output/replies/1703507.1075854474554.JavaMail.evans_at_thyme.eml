@@ -1,0 +1,30 @@
+From: Email Deduplication System <dedup@localhost>
+To: david.delainey@enron.com
+Subject: [Duplicate Notice] Re: Event Policy Memo and Approval Form
+Date: Fri, 06 Nov 2026 02:52:50 +0000
+Message-ID: <179393357028.28556.5957826213322231419@dedup.local>
+References: <1703507.1075854474554.JavaMail.evans@thyme>
+In-Reply-To: <1703507.1075854474554.JavaMail.evans@thyme>
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+MIME-Version: 1.0
+
+This is an automated notification from the Email Deduplication System.
+
+Your email has been identified as a potential duplicate:
+
+  Your Email (Flagged):
+    Message-ID:  <1703507.1075854474554.JavaMail.evans@thyme>
+    Date Sent:   2000-07-07 18:14:00 UTC
+    Subject:     Event Policy Memo and Approval Form
+
+  Original Email on Record:
+    Message-ID:  <3729493.1075854491042.JavaMail.evans@thyme>
+    Date Sent:   2000-07-07 18:14:00 UTC
+
+  Similarity Score: 100.00%
+
+If this was NOT a duplicate and you intended to send this email,
+please reply with CONFIRM to restore it to active status.
+
+No action is required if this is indeed a duplicate.

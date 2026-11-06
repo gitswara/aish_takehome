@@ -34,6 +34,8 @@ REPORT_COLUMNS = ["duplicate_message_id", "original_message_id", "subject", "fro
                   "likely_export_copy",                                    # D45 extra column
                   "recipient_overlap"]                                     # D46 extra column
 EXPORT_COPY_MAX_HOURS = 24     # D45: max whole-hour gap for a Notes/Outlook export copy
+EXPORT_COPY_MIN_SCORE = 99     # D45 amendment: was exactly 100
+EXPORT_COPY_TOLERANCE_SECONDS = 60   # D45 amendment: gap within 60 s of a whole number of hours
 NOTES_FOLDER_MARKER = "\\Notes Folders\\"   # D45: Lotus Notes exports have this in X-Folder
 
 # D35: one or more reply/forward prefixes at the start: "Re:", "RE: FW:", "Fwd[2]:" ...
@@ -179,16 +181,21 @@ def is_notes_folder(x_folder):
 
 
 def likely_export_copy(dup_date, orig_date, score, dup_folder, orig_folder):
-    """D45: the same email exported twice with a shifted clock.
+    """D45 (amended): the same email exported twice with a shifted clock.
 
-    True when ALL of: score is 100; the gap is an exact whole number of hours,
-    more than 0 and at most EXPORT_COPY_MAX_HOURS; and one copy is in a Notes
-    folder while the other is in an Outlook folder.
+    True when ALL of:
+      - score >= EXPORT_COPY_MIN_SCORE (99);
+      - the gap is within EXPORT_COPY_TOLERANCE_SECONDS (60 s) of a whole number
+        of hours between 1 and EXPORT_COPY_MAX_HOURS (24);
+      - one copy is in a Notes folder and the other in an Outlook folder.
     """
-    if score != 100:
+    if score < EXPORT_COPY_MIN_SCORE:
         return False
-    gap_hours = (datetime.fromisoformat(dup_date) - datetime.fromisoformat(orig_date)).total_seconds() / 3600
-    if gap_hours <= 0 or gap_hours > EXPORT_COPY_MAX_HOURS or gap_hours != int(gap_hours):
+    gap_seconds = (datetime.fromisoformat(dup_date) - datetime.fromisoformat(orig_date)).total_seconds()
+    whole_hours = round(gap_seconds / 3600)
+    if not 1 <= whole_hours <= EXPORT_COPY_MAX_HOURS:
+        return False
+    if abs(gap_seconds - whole_hours * 3600) > EXPORT_COPY_TOLERANCE_SECONDS:
         return False
     return is_notes_folder(dup_folder) != is_notes_folder(orig_folder)
 

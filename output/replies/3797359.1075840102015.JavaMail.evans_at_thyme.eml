@@ -1,0 +1,30 @@
+From: Email Deduplication System <dedup@localhost>
+To: sherri.sera@enron.com
+Subject: [Duplicate Notice] Re: Beta Party
+Date: Fri, 06 Nov 2026 02:52:51 +0000
+Message-ID: <179393357194.28556.5805198191562902955@dedup.local>
+References: <3797359.1075840102015.JavaMail.evans@thyme>
+In-Reply-To: <3797359.1075840102015.JavaMail.evans@thyme>
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+MIME-Version: 1.0
+
+This is an automated notification from the Email Deduplication System.
+
+Your email has been identified as a potential duplicate:
+
+  Your Email (Flagged):
+    Message-ID:  <3797359.1075840102015.JavaMail.evans@thyme>
+    Date Sent:   2000-09-13 10:34:00 UTC
+    Subject:     Re: Beta Party
+
+  Original Email on Record:
+    Message-ID:  <31616322.1075840105080.JavaMail.evans@thyme>
+    Date Sent:   2000-09-13 10:34:00 UTC
+
+  Similarity Score: 100.00%
+
+If this was NOT a duplicate and you intended to send this email,
+please reply with CONFIRM to restore it to active status.
+
+No action is required if this is indeed a duplicate.

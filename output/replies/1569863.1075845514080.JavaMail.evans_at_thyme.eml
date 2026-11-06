@@ -1,0 +1,30 @@
+From: Email Deduplication System <dedup@localhost>
+To: outlook.team@enron.com
+Subject: [Duplicate Notice] Re: 1-URGENT - Outlook Email Notification (new)
+Date: Fri, 06 Nov 2026 02:52:57 +0000
+Message-ID: <179393357798.28556.15716786997904041460@dedup.local>
+References: <1569863.1075845514080.JavaMail.evans@thyme>
+In-Reply-To: <1569863.1075845514080.JavaMail.evans@thyme>
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+MIME-Version: 1.0
+
+This is an automated notification from the Email Deduplication System.
+
+Your email has been identified as a potential duplicate:
+
+  Your Email (Flagged):
+    Message-ID:  <1569863.1075845514080.JavaMail.evans@thyme>
+    Date Sent:   2001-05-14 13:01:00 UTC
+    Subject:     1-URGENT - Outlook Email Notification (new)
+
+  Original Email on Record:
+    Message-ID:  <8984946.1075845546714.JavaMail.evans@thyme>
+    Date Sent:   2001-01-19 10:34:00 UTC
+
+  Similarity Score: 99.33%
+
+If this was NOT a duplicate and you intended to send this email,
+please reply with CONFIRM to restore it to active status.
+
+No action is required if this is indeed a duplicate.

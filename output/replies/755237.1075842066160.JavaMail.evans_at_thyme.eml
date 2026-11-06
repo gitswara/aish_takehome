@@ -1,0 +1,30 @@
+From: Email Deduplication System <dedup@localhost>
+To: chris.abel@enron.com
+Subject: [Duplicate Notice] Re: Final
+Date: Fri, 06 Nov 2026 02:53:00 +0000
+Message-ID: <179393358087.28556.10220414567808906147@dedup.local>
+References: <755237.1075842066160.JavaMail.evans@thyme>
+In-Reply-To: <755237.1075842066160.JavaMail.evans@thyme>
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+MIME-Version: 1.0
+
+This is an automated notification from the Email Deduplication System.
+
+Your email has been identified as a potential duplicate:
+
+  Your Email (Flagged):
+    Message-ID:  <755237.1075842066160.JavaMail.evans@thyme>
+    Date Sent:   2001-06-20 15:56:00 UTC
+    Subject:     Final
+
+  Original Email on Record:
+    Message-ID:  <27014726.1075842046369.JavaMail.evans@thyme>
+    Date Sent:   2001-06-20 15:56:00 UTC
+
+  Similarity Score: 100.00%
+
+If this was NOT a duplicate and you intended to send this email,
+please reply with CONFIRM to restore it to active status.
+
+No action is required if this is indeed a duplicate.

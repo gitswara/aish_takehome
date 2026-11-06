@@ -1,0 +1,30 @@
+From: Email Deduplication System <dedup@localhost>
+To: pwhobby@hobbycomm.com
+Subject: [Duplicate Notice] Re: christmas gathering
+Date: Fri, 06 Nov 2026 02:52:55 +0000
+Message-ID: <179393357546.28556.4439267970105564726@dedup.local>
+References: <6581243.1075840098724.JavaMail.evans@thyme>
+In-Reply-To: <6581243.1075840098724.JavaMail.evans@thyme>
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+MIME-Version: 1.0
+
+This is an automated notification from the Email Deduplication System.
+
+Your email has been identified as a potential duplicate:
+
+  Your Email (Flagged):
+    Message-ID:  <6581243.1075840098724.JavaMail.evans@thyme>
+    Date Sent:   2000-11-30 10:23:00 UTC
+    Subject:     christmas gathering
+
+  Original Email on Record:
+    Message-ID:  <28957330.1075840077149.JavaMail.evans@thyme>
+    Date Sent:   2000-11-30 10:23:00 UTC
+
+  Similarity Score: 100.00%
+
+If this was NOT a duplicate and you intended to send this email,
+please reply with CONFIRM to restore it to active status.
+
+No action is required if this is indeed a duplicate.

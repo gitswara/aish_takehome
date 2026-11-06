@@ -1,0 +1,30 @@
+From: Email Deduplication System <dedup@localhost>
+To: john.suarez@enron.com
+Subject: [Duplicate Notice] Re: MSN Revenues
+Date: Fri, 06 Nov 2026 02:53:00 +0000
+Message-ID: <179393358088.28556.18388094836319478474@dedup.local>
+References: <15598200.1075842066314.JavaMail.evans@thyme>
+In-Reply-To: <15598200.1075842066314.JavaMail.evans@thyme>
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+MIME-Version: 1.0
+
+This is an automated notification from the Email Deduplication System.
+
+Your email has been identified as a potential duplicate:
+
+  Your Email (Flagged):
+    Message-ID:  <15598200.1075842066314.JavaMail.evans@thyme>
+    Date Sent:   2001-06-20 17:51:00 UTC
+    Subject:     MSN Revenues
+
+  Original Email on Record:
+    Message-ID:  <13978957.1075842046522.JavaMail.evans@thyme>
+    Date Sent:   2001-06-20 17:51:00 UTC
+
+  Similarity Score: 100.00%
+
+If this was NOT a duplicate and you intended to send this email,
+please reply with CONFIRM to restore it to active status.
+
+No action is required if this is indeed a duplicate.

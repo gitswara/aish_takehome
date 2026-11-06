@@ -1,0 +1,30 @@
+From: Email Deduplication System <dedup@localhost>
+To: greg.whalley@enron.com
+Subject: [Duplicate Notice] Re: Texas eComm Ten Awards
+Date: Fri, 06 Nov 2026 02:52:57 +0000
+Message-ID: <179393357728.28556.13998395091757912235@dedup.local>
+References: <24633282.1075842061591.JavaMail.evans@thyme>
+In-Reply-To: <24633282.1075842061591.JavaMail.evans@thyme>
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+MIME-Version: 1.0
+
+This is an automated notification from the Email Deduplication System.
+
+Your email has been identified as a potential duplicate:
+
+  Your Email (Flagged):
+    Message-ID:  <24633282.1075842061591.JavaMail.evans@thyme>
+    Date Sent:   2000-12-15 08:25:00 UTC
+    Subject:     RE: Texas eComm Ten Awards
+
+  Original Email on Record:
+    Message-ID:  <29832786.1075842041380.JavaMail.evans@thyme>
+    Date Sent:   2000-12-15 08:25:00 UTC
+
+  Similarity Score: 100.00%
+
+If this was NOT a duplicate and you intended to send this email,
+please reply with CONFIRM to restore it to active status.
+
+No action is required if this is indeed a duplicate.

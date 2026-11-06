@@ -1,0 +1,30 @@
+From: Email Deduplication System <dedup@localhost>
+To: kathy.mcmahon@enron.com
+Subject: [Duplicate Notice] Re: Invitation
+Date: Fri, 06 Nov 2026 02:52:59 +0000
+Message-ID: <179393357949.28556.12675930360949326220@dedup.local>
+References: <13685224.1075858045905.JavaMail.evans@thyme>
+In-Reply-To: <13685224.1075858045905.JavaMail.evans@thyme>
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+MIME-Version: 1.0
+
+This is an automated notification from the Email Deduplication System.
+
+Your email has been identified as a potential duplicate:
+
+  Your Email (Flagged):
+    Message-ID:  <13685224.1075858045905.JavaMail.evans@thyme>
+    Date Sent:   2001-05-14 10:36:00 UTC
+    Subject:     Invitation
+
+  Original Email on Record:
+    Message-ID:  <17840188.1075845491871.JavaMail.evans@thyme>
+    Date Sent:   2001-05-14 10:36:00 UTC
+
+  Similarity Score: 100.00%
+
+If this was NOT a duplicate and you intended to send this email,
+please reply with CONFIRM to restore it to active status.
+
+No action is required if this is indeed a duplicate.

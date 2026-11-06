@@ -1,0 +1,30 @@
+From: Email Deduplication System <dedup@localhost>
+To: neil@kelley.com
+Subject: [Duplicate Notice] Re: Vitol consulting deal
+Date: Fri, 06 Nov 2026 02:53:00 +0000
+Message-ID: <179393358090.28556.2850593586990331515@dedup.local>
+References: <25069795.1075842066486.JavaMail.evans@thyme>
+In-Reply-To: <25069795.1075842066486.JavaMail.evans@thyme>
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+MIME-Version: 1.0
+
+This is an automated notification from the Email Deduplication System.
+
+Your email has been identified as a potential duplicate:
+
+  Your Email (Flagged):
+    Message-ID:  <25069795.1075842066486.JavaMail.evans@thyme>
+    Date Sent:   2001-06-21 12:38:00 UTC
+    Subject:     Vitol consulting deal
+
+  Original Email on Record:
+    Message-ID:  <2063508.1075842046695.JavaMail.evans@thyme>
+    Date Sent:   2001-06-21 12:38:00 UTC
+
+  Similarity Score: 100.00%
+
+If this was NOT a duplicate and you intended to send this email,
+please reply with CONFIRM to restore it to active status.
+
+No action is required if this is indeed a duplicate.

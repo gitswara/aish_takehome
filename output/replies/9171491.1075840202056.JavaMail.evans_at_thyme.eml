@@ -1,0 +1,30 @@
+From: Email Deduplication System <dedup@localhost>
+To: rosalee.fleming@enron.com
+Subject: [Duplicate Notice] Re: Hotel Reservations
+Date: Fri, 06 Nov 2026 02:52:48 +0000
+Message-ID: <179393356872.28556.4854146365796224070@dedup.local>
+References: <9171491.1075840202056.JavaMail.evans@thyme>
+In-Reply-To: <9171491.1075840202056.JavaMail.evans@thyme>
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+MIME-Version: 1.0
+
+This is an automated notification from the Email Deduplication System.
+
+Your email has been identified as a potential duplicate:
+
+  Your Email (Flagged):
+    Message-ID:  <9171491.1075840202056.JavaMail.evans@thyme>
+    Date Sent:   2000-01-27 18:27:00 UTC
+    Subject:     Hotel Reservations
+
+  Original Email on Record:
+    Message-ID:  <22543933.1075840283375.JavaMail.evans@thyme>
+    Date Sent:   2000-01-27 18:27:00 UTC
+
+  Similarity Score: 100.00%
+
+If this was NOT a duplicate and you intended to send this email,
+please reply with CONFIRM to restore it to active status.
+
+No action is required if this is indeed a duplicate.
