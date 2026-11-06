@@ -48,6 +48,13 @@ How I used Claude Code (Opus 5.5) during this challenge: what I asked for, what 
   - `lay-k/sent/71.`: split at the Notes one-line reply header (with seconds in the time). The body is Ken's letter sent by Rosalee, and the quoted part is Loyal's original.
   - `lavorato-j/all_documents/8.`: the blank subject is stored as `""`, and Cc and Bcc are identical. In that same file I found evidence for D7: `X-bcc` is empty while `X-cc` names the recipient.
 - **Test-validation technique (step 11):** all 8 pytest cases passed on the first run. A test that has never failed might not be testing anything, so Claude deliberately broke three rules *in memory*, one at a time: undoing D19 (single `>` = quote), emptying the D6 placeholder-date list, and disabling the D17 strip. It re-ran the matching test each time, and each failed as it should, which shows the tests catch regressions. The source code was never changed for this. **Lesson:** when tests pass first time, prove they can fail.
+- **The same technique for the DB tests (Task 2, step 7):** the 7 loader tests also all passed on the first run, so Claude broke three loader rules in memory:
+  - replaced the upsert with `INSERT OR REPLACE`, which silently wipes Task 3/4 state
+  - skipped the recipient `DELETE` before re-inserting
+  - removed the notification guard on stale originals
+
+  The matching test failed each time.
+- **A second change Claude made without asking, flagged, and I approved (Task 3, step 3):** Claude changed `--limit` in `detect_duplicates.py` from "write outputs to `output/sample_run/`" (my D42) to a **print-only preview**, because writing flags from a sample of blocks would leave the DB half-flagged. It flagged this clearly in its step report ("I changed `--limit` without asking"), and I approved it after review; D42 is amended. This is the second such case, after the `notes_reply_from_line` marker in Task 1 step 4. **Pattern:** Claude may make small necessary deviations, but it must say so in the step report so I can accept or reverse them.
 - **Also caught in step 3:** Python 3.13's `getaddresses` silently drops a whole address list when one address is malformed (strict mode). A verification script comparing parsed counts with the raw scan found it (D18).
 
 ---

@@ -1,0 +1,25 @@
+{
+  "run_at_utc": "2026-11-06T02:03:28+00:00",
+  "similarity_threshold": 90,
+  "scorer": "rapidfuzz fuzz.ratio on full text (body + forwarded + quoted) + D44 body gate",
+  "emails": 20339,
+  "blocks": 8227,
+  "candidate_blocks": 3907,
+  "duplicate_groups": 4558,
+  "emails_flagged": 10675,
+  "average_group_size": 3.34,
+  "largest_group_size": 68,
+  "flagged_same_timestamp_as_original": 9979,
+  "flagged_later_than_original": 696,
+  "score_bands": {
+    "100": 10293,
+    "95_to_under_100": 231,
+    "90_to_under_95": 151
+  },
+  "lowest_score": 90.08,
+  "body_gate_rejected_comparisons": 253,
+  "rows_flagged_this_run": 10675,
+  "notified_rows_conflicts": [],
+  "task4_targets": 4558,
+  "task4_targets_later_than_original": 389
+}

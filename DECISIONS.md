@@ -432,3 +432,116 @@ The facts behind these are in `docs/FINDINGS_task2.md` (measured on the 20,339 p
   - Q6: no rows until Task 3 has run
 - Q5 fails on purpose, so the CLI exits with code 1; this is documented at the top of the file. The DB file's MD5 is identical before and after running the script, so nothing was written.
 - Q3's sample shows the same "Education Survey" email three times (three folders), a live example of the cross-folder copies Task 3 targets.
+
+## Task 2, step 7 notes (DB tests)
+
+- `tests/test_load_db.py`: 7 tests, each on a temporary DB built from synthetic records (`make_record()`). The real `output/enron.db` is never touched.
+  1. a re-run updates parsed fields but keeps Task 3/4 state (D30)
+  2. recipients are replaced on reload, and unused addresses are cleaned up (D30)
+  3. a repeated address in one list is stored once (D29)
+  4. a stale original is deleted, and the duplicates pointing to it are cleared; recipients cascade (D30)
+  5. a stale original is kept when a notified duplicate points to it (D30 guard)
+  6. a plain duplicate INSERT raises `UNIQUE constraint failed` (spec)
+  7. `--rebuild` is refused once a notification was sent (D30)
+- `pytest -q`: **15 passed** (8 parser + 7 DB) in 0.13 s.
+- **Mutation check** (proof the tests can fail): `INSERT OR REPLACE` instead of the upsert → test 1 fails; no recipient `DELETE` → test 2 fails; guard removed → test 5 fails.
+- **Why `INSERT OR REPLACE` matters:** it looks like an upsert, but it *deletes* the old row and inserts a new one. That resets every column not supplied, including `notification_sent`, and gives the email a new `id`. Test 1 would catch anyone "simplifying" the loader this way.
+
+---
+
+# Task 3: Duplicate detection decisions
+
+Findings in `docs/FINDINGS_task3.md`. I accepted all the recommendations for D35–D42. D43 waits until Task 4 works. D44 is open.
+
+## D35. Subject normalisation
+- **I chose:** strip any chain of `Re:` / `Fw:` / `Fwd:` prefixes (any case, optional `[n]` counter, any spacing), then collapse whitespace and lowercase. Other prefixes (`Mtg:`, `FYI:`, `URG:`) stay as part of the subject.
+- **Why:** `RE: Budget` and `Re: budget` are the same thread. Prefix forms seen: `Re:` 3,973 · `RE:` 860 · `FW:` 670 · chains like `Re: FW:` 75.
+
+## D36. Text compared
+- **I chose:** the full text (D9) = `body + forwarded_content + quoted_content`, with all whitespace collapsed to single spaces and case kept.
+- **Why:** line-wrapping differs between copies; the spec is about content.
+
+## D37. Similarity scorer
+- **Options:** `fuzz.ratio` · `fuzz.token_sort_ratio` · `fuzz.partial_ratio` (all from `rapidfuzz` 3.14.6, already pinned).
+- **I chose `fuzz.ratio`:** order-sensitive edit similarity, the most literal reading of "body content ≥ 90% similar". `partial_ratio` would score "fyi" against any email containing it at 100. `token_sort_ratio` disagrees with `ratio` on 2,107 of 431,906 block pairs.
+
+## D38. Forming groups
+- **Options:** (a) anchor to the original · (b) connected components · (c) complete linkage.
+- **I chose (a):** within each (sender, normalised subject) block, go oldest first. Each email is compared to the *original* of each existing group and joins the first group it matches; otherwise it starts a new group.
+- **Why:** every flagged email is then ≥ 90 against the original it's linked to, so the report's `similarity_score` is never below the threshold. (b) produced 18 flagged emails scoring below 90 vs their own original. Estimated run time: about 1.5 s.
+
+## D39. Same timestamps: folder copies vs re-sends
+- **Tie-break:** order by (date, source_file). When the earliest timestamp is shared, the original is the alphabetically first `source_file`.
+- **Options:** (a) flag every copy, as the spec says · (b) collapse same-timestamp copies first (477 groups / 580 flagged) · (c) (a) plus a `same_timestamp` report column and a stats split.
+- **I chose (c).** Estimated **4,537 groups / 10,768 flagged**, of which 9,835 are folder copies (same timestamp as the original) and 933 are later repeats (pre-D44 estimates; **final after D44: 4,558 groups / 10,675 flagged; 9,979 folder copies / 696 later**). The extra column follows the 7 spec columns, so it doesn't break them.
+
+## D40. Re-running Task 3
+- **I chose:** clear `is_duplicate`, `duplicate_of` and `similarity_score` on all rows with `notification_sent = 0`, then recompute. Notified rows are never changed; if the new grouping disagrees with one, it's reported as a conflict. One transaction.
+
+## D41. Threshold and score format
+- **I chose:** `SIMILARITY_THRESHOLD = 90` (inclusive) in the config block. Scores are on a 0–100 scale, rounded to 2 decimals.
+- **Which score is stored and reported:** `similarity_score` (DB column and report) is the **full-text** score vs the original (D9, D36). The D44 body check is only a pass/fail gate; its score is **not** stored or reported.
+
+## D42. Outputs
+- **I chose:**
+  - `src/detect_duplicates.py`
+  - `duplicates_report.csv` at the repo root (7 spec columns + `same_timestamp`; one row per flagged email, sorted by original date, then duplicate date). Its `similarity_score` is the full-text score (D41); the D44 body gate isn't reported.
+  - stats printed and saved to `output/dedup_stats.json`
+  - ~~`--limit` writes to `output/sample_run/`~~ **Amended in step 3 (Claude changed it, flagged it, I approved after review):** `--limit` is a **print-only preview** (no DB writes, no files), because flags written from a block sample would leave the DB half-flagged. Full runs write the flags, the report and the stats.
+
+## D43. Sender-alias report (nice-to-have)
+- **Deferred until Task 4 works.** Count the groups that would merge if aliases (`lavorato@` ↔ `john.lavorato@`) were combined, without changing any flags.
+
+## D44. Also require the primary body to be ≥ 90 similar
+- **Context (my D9 revisit):** full-text similarity can pass two *different replies* because they quote the same long thread. Should the primary `body` also have to be ≥ 90?
+- **Rule for empty bodies (decided, must be explicit in code, not left to rapidfuzz's behaviour with empty strings):** if **both** primary bodies are empty (pure forwards), the body check **passes** and full text alone decides.
+- **Measured** (anchor grouping, D35–D38):
+  - Current rule: 4,537 groups / 10,768 flagged. 684 flagged pairs have both bodies empty (pass).
+  - **244 flagged emails would fail** the extra check. **240 have a later timestamp** than their original; 4 share it. Body scores: <50: 154 · 50–80: 45 · 0 (one body empty or no overlap): 45, of which 35 have exactly one empty body.
+  - Recomputed with both checks: **4,558 groups / 10,675 flagged (net −93)**. Un-flagged emails start their own group (+21) or match a different original.
+- **Examples it would un-flag** (all Delainey, different replies over the same quoted thread):
+  - "Great words": full text 94.4, body 48.0 ("Mike Moulton has been pursuing an idea…" vs "Mike, I forwarded your interest to Whalley, McConnel and McMahon…")
+  - "Re: Spring Business Meeting": full text 97.6, body 14.4 ("John, what do you want to do with this?…" vs "fyi, action")
+  - "Re: GE Plastics Facts": full text 90.6, body 50.5 ("…GE is willing to play on the Selkirk asset…" vs "…if this deal is such a long put why did you push me into this process?…")
+- **I chose: yes, add the body check as a pass/fail gate.** An email is a duplicate only if its full text is ≥ 90 **and** the body gate passes:
+  - **both** primary bodies empty → **pass** (full text decides)
+  - **exactly one** empty → **fail** (one message has the sender's own words, the other doesn't; 35 cases)
+  - otherwise the body `fuzz.ratio` must be ≥ 90
+
+  The empty cases are coded explicitly, not left to rapidfuzz's behaviour with empty strings.
+- **Why:** it catches different replies over the same quoted thread. Example: Delainey, **"Re: Spring Business Meeting"**: the original "John, what do you want to do with this?…" vs the later "fyi, action" scores **97.6% on full text but 14.4% on body**. They are different messages.
+- **Rows affected (confirmed by the step 2 run):** 4,537 groups / 10,768 flagged → **4,558 / 10,675**. **244 emails** un-flagged (**253 comparisons** rejected), **240** of them with a later timestamp than their original. Later-timestamp flagged emails after D44: **696** (was 933).
+
+## Task 3, steps 1–2 notes (blocks + grouping)
+
+- `src/detect_duplicates.py` steps 1–2 read the DB, build blocks, and group in memory. **No DB writes yet** (MD5 of `enron.db` unchanged).
+- **Full run (2.6 s):**
+  - 20,339 emails · 8,227 blocks · 3,907 candidate blocks
+  - **4,558 groups · 10,675 flagged** · average group size 3.34
+  - exactly the D44 estimate
+- **Split (D39), final:** 9,979 flagged emails share their original's timestamp (folder copies); **696** are later (re-send candidates). Before D44 the split was 9,835 / 933. Un-flagged emails re-group, so both numbers move. **696 is the final later-timestamp count used in all docs.**
+- **D44 body gate:** **253 comparisons** rejected, affecting **244 emails** (the estimate's count). One email can be rejected against more than one group's original.
+- **Lowest flagged full-text score: 90.08** ≥ 90 ✔ (D38: no flagged email scores below the threshold against its original).
+- **`--limit N` samples whole blocks (sender + normalised subject), not emails.** I agreed this after review. Why: sampling emails would split a group's members between the sample and the rest, and **undercount duplicates** (an email whose original wasn't sampled would look unique). Sampling whole blocks keeps every group intact. 300 blocks → 324 groups / 766 flagged. A `--limit` run only prints; it never writes to the DB.
+
+## Task 3, steps 3–5 notes (flags, report, stats)
+
+- **`write_flags()`** (one transaction, D40):
+  - clears `is_duplicate` / `duplicate_of` / `similarity_score` on every row with `notification_sent = 0`
+  - sets them for each flagged email
+  - leaves notified rows alone, and lists any whose new result differs (conflicts: **0**)
+- **The report and stats are built from the DB *after* writing,** not from memory, so they show exactly what's stored (including any notified rows kept unchanged).
+- **Full run:**
+  - **4,558 groups · 10,675 flagged · average group size 3.34 · largest group 68**
+  - same timestamp **9,979** · later **696**
+  - scores: 100 → 10,293 · 95–<100 → 231 · 90–<95 → 151 · lowest **90.08**
+  - D44 body gate: 253 comparisons rejected (244 emails)
+- **Task 4 targets** (the latest duplicate of each group, by date then source_file): **4,558**, of which **389** are later than their original. The rest are same-timestamp folder copies.
+- **Checks on the DB:**
+  - 10,675 flagged, pointing at 4,558 distinct originals
+  - 0 chains (no original is itself flagged)
+  - 0 flagged rows missing `duplicate_of` or a score; 0 leftovers on non-flagged rows
+  - 0 duplicates earlier than their original; 0 with a different sender
+  - integrity and foreign-key checks clean
+- **Re-run:** flags (hash of every row's Task 3 columns) and `duplicates_report.csv` are **byte-identical** on a second run.
+- `duplicates_report.csv`: 10,675 rows + header; `same_timestamp` True 9,979 / False 696.

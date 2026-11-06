@@ -271,3 +271,33 @@ All counts match the expected values exactly. A full load takes about 2.5–2.8 
 2. **Q3 shows a real duplicate:** its first three rows are one email (1998-01-06, "Education Survey") stored in three folders. That's a preview of Task 3.
 3. **Q1 shows the alias issue:** `john.lavorato@` (2,299) and `lavorato@` (401) appear separately, which is the Task 3 limitation already noted in PLAN.md.
 4. **Changed my Q4 example:** the first email I picked had only To recipients, so I switched to one with To, Cc and Bcc.
+
+---
+
+## Step 7: DB tests
+
+**What I did:** `tests/test_load_db.py`, 7 tests. Each builds a fresh SQLite DB in a pytest temp folder from a few synthetic records and calls the loader's own functions (`connect`, `apply_schema`, `load`, `rebuild_allowed`). The real `output/enron.db` and the Enron data are never used.
+
+| Test | Checks | Decision |
+| --- | --- | --- |
+| `test_rerun_updates_parsed_fields_but_keeps_task34_state` | 2nd load = 0 inserted / 2 updated; new subject saved; `is_duplicate`, `duplicate_of`, `similarity_score`, `notification_sent` unchanged | D30 |
+| `test_recipients_are_replaced_on_reload` | To 2 + Cc 1 → To 1; old rows gone; 2 unused addresses removed | D30 |
+| `test_repeated_address_in_one_list_is_stored_once` | `a@` twice in To + once in Cc → 1 to row + 1 cc row; 1 repeat skipped | D29 |
+| `test_stale_original_is_deleted_and_its_duplicates_cleared` | original deleted; duplicate reset to (0, NULL, NULL, 0); its recipients cascaded away | D30 |
+| `test_stale_original_kept_when_a_notified_duplicate_points_to_it` | original kept and reported; notified duplicate untouched | D30 guard |
+| `test_unique_constraint_rejects_plain_duplicate_insert` | `sqlite3.IntegrityError: UNIQUE constraint failed: emails.message_id` | spec |
+| `test_rebuild_refused_once_a_notification_was_sent` | `rebuild_allowed()` True before, False after a notification | D30 |
+
+**Result:** `pytest -q` → **15 passed in 0.13 s** (8 parser + 7 DB).
+
+**Mutation check** (proof the tests can fail): I broke each rule in memory and re-ran the matching test.
+
+| Rule broken | Test | Result |
+| --- | --- | --- |
+| upsert replaced by `INSERT OR REPLACE` | `test_rerun_updates_parsed_fields_but_keeps_task34_state` | failed ✔ |
+| recipient `DELETE` skipped before re-insert | `test_recipients_are_replaced_on_reload` | failed ✔ |
+| notification guard on stale originals removed | `test_stale_original_kept_when_a_notified_duplicate_points_to_it` | failed ✔ |
+
+**Unexpected / not sure:**
+1. All 7 passed on the first run, hence the mutation check.
+2. **Worth knowing for the interview:** `INSERT OR REPLACE` *looks* like an upsert, but it deletes the old row and inserts a new one. That resets `notification_sent` and the other Task 3/4 columns and changes the email's `id`. Test 1 guards against that "simplification".

@@ -43,7 +43,24 @@ sample_queries.sql: 6 queries run against output/enron.db
 
 **Run:** `python src/load_db.py` (about 3 s, safe to re-run). `--limit N` loads into `output/sample_run/enron.db`; `--rebuild` starts fresh unless a notification has been sent. `output/enron.db` is 61 MB and git-ignored (`*.db`).
 
-**Tests:** `pytest -q` runs `tests/test_parse_emails.py` (8 edge-case tests, about 0.1 s, no Enron data needed). Each test writes a small fake email and calls `parse_file()`, the same per-file function `main()` uses.
+## Duplicate detection (Task 3: D35–D44; steps 1–5 built)
+
+```
+output/enron.db ──► src/detect_duplicates.py
+                     1. load emails; full text (body+fwd+quoted) and body, whitespace collapsed
+                     2. blocks: (from_address, subject without Re/Fw/Fwd, lowercased); keep blocks of 2+
+                     3. each block oldest first by (date, source_file)
+                     4. each email vs each group's ORIGINAL: full text ≥ 90 AND body gate → join, else new group
+                     5. write flags (1 transaction; notified rows never changed)
+                     6. read flagged pairs back FROM THE DB ──► duplicates_report.csv (repo root)
+                                                            └─► output/dedup_stats.json (+ printed)
+```
+
+**Run:** `python src/detect_duplicates.py` (about 4 s; re-runnable with identical results). `--limit N` is a print-only preview of N blocks.
+
+**Tests:** `pytest -q` runs 15 tests in about 0.1 s, with no Enron data needed:
+- `tests/test_parse_emails.py` (8): each writes a small fake email and calls `parse_file()`, the same per-file function `main()` uses.
+- `tests/test_load_db.py` (7): each builds a temporary SQLite DB from synthetic records and calls the loader's own functions.
 
 The input files are never modified. Decisions are D4–D14 in DECISIONS.md.
 
