@@ -1,6 +1,6 @@
 # How we work on this project
 
-I'm doing a timed coding challenge (about 60 minutes) and will have to explain
+I'm doing a timed coding challenge (about 24 hours) and will have to explain
 every decision and every line of code to an interview panel afterwards. Your job
 is to help me build quickly while I stay in control of the design.
 
@@ -45,5 +45,15 @@ is to help me build quickly while I stay in control of the design.
 
 ## Time awareness
 
-Remind me at roughly the 30- and 50-minute marks to check scope. By 50 minutes,
-we stop adding features and focus on making the output work and the docs complete.
+This is a ~24-hour take-home. Remind me to check scope at each checkpoint:
+
+| By about | Done |
+| --- | --- |
+| 8h | Task 1 parser (steps 1–11 in PLAN.md, including headings and tests) |
+| 10h | Task 2 database: schema, loader, sample queries |
+| 13h | Task 3 duplicate detection + `duplicates_report.csv` |
+| 15h | Task 4 notifications: draft replies + live MCP send |
+| 15h+ | Docs and polish: README.md, AI_USAGE.md, final checks |
+
+If a checkpoint slips, we stop adding features to that task and make its output
+work and its docs complete before moving on.
