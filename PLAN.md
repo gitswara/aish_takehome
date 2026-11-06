@@ -98,7 +98,7 @@ Decisions D47–D56 (all decided). Findings in `docs/FINDINGS_task4.md`. **Time:
 5. [x] **M** MCP client (D55) (*built; not yet exercised*): start `gmail_server.py` over stdio, `call_tool("send_email", {to: NOTIFY_TO, subject, body, references})`. Refuse if `NOTIFY_TO` is unset (checked in code; I never read `.env`). Classify errors (auth → stop; quota → stop; transient → retry ×3; else failed). ~1 s pause between sends.
 6. [x] **M** Record sends (D54) (*built; not yet exercised*): append to `output/send_log.csv` (spec columns + `intended_recipient`, `duplicate_message_id`); after a confirmed send, set `notification_sent = 1` and `notification_date`.
 7. [x] **M** **Live run with `--max-sends 1` first; you check your inbox** (*done: 1 + 9 sent, 0 failed; re-run sent 0; notified rows survive Task 2/3 re-runs; `--rebuild` refused*), then the default 10. Confirm: the DB flags are set, a re-run skips sent targets, and Task 2/3 re-runs keep the notified rows (D30/D40). Screenshot/log for AI_USAGE §4.3.
-8. [ ] **M** `main.py`: one command runs parse → load → dedup → notify (dry run unless `--send-live`) (§5).
+8. [x] **M** `main.py`: one command runs parse → load → dedup → notify (dry run unless `--send-live`) (§5). *Done: clean end-to-end run in 37.7 s; all documented counts match; originals restored (10 notifications kept).*
 9. [ ] **N** pytest (small): subject rule (D52), safe file names, template fields, selection order + cap, `notification_sent` set only on success (with a fake MCP client, no network).
 10. [ ] **N** **D43 alias report, after Task 4 works:** count the groups that would merge if sender aliases were combined (e.g. `john.lavorato@` ↔ `lavorato@`), without changing flags.
 

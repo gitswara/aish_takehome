@@ -1,6 +1,8 @@
 # Architecture
 
-Inputs → scripts → outputs. (Pipeline sections get added as I build each step.)
+Inputs → scripts → outputs.
+
+**One command:** `python main.py` runs parse → load → dedupe → notify (dry run). Options: `--preview`, `--send-live [--max-sends N]`. About 38 s end to end. Each step can also be run on its own (`python src/<step>.py`).
 
 ## Pipeline (Task 1, planned)
 

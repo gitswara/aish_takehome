@@ -742,3 +742,26 @@ Findings in `docs/FINDINGS_task4.md`. I accepted the recommendations for D47, D4
 - **Sends 2–10:** PGS Seminars · Hawkes Peers · Rally against terrorism · October 01 Meeting Minutes · Past Due Invoice · Enron Image 2000 Video · Demand Ken Lay Donate Proceeds (×2, different senders) · 5/18/01 Gas Violations FINAL. **9 sent, 0 failed**, about 1 s apart, all to `NOTIFY_TO`.
 - **Proof of no double sends:** a further `--send-live` → "10 of 10 already sent; 0 left … **0 emails sent**". `send_log.csv` has 10 rows, all `sent`, with 10 distinct `duplicate_message_id`s, each matching its DB `notification_date` to the second.
 - **D30/D40 proven on real data:** `python src/load_db.py` (0 inserted, 0 stale) and `python src/detect_duplicates.py` (0 conflicts) left the 10 notified rows byte-identical; `load_db.py --rebuild` was **refused** (10 notified).
+
+## Task 4, step 8 notes (`main.py` + clean end-to-end run)
+
+- **`main.py`** runs the four scripts as subprocesses with the same Python: `src/parse_emails.py` → `src/load_db.py` → `src/detect_duplicates.py` → `src/notify.py`. `--send-live`, `--preview` and `--max-sends` are passed to `notify.py`. A failing step stops the pipeline (its exit code is passed on). Dry run by default.
+- **Why subprocesses, not imports:** each script stays exactly as tested and runnable on its own, and `main.py` has no logic of its own to explain.
+- **Clean run:**
+  1. moved the generated outputs aside into `output/backup_before_clean_run/` (git-ignored) with MD5 checksums
+  2. ran `python main.py` from scratch
+  3. compared the fresh outputs with the originals
+  4. restored the originals
+
+| Documented | Fresh run |
+| --- | --- |
+| 20,339 parsed / 1,323 failed | 20,339 / 1,323 ✔ |
+| DB: 20,339 emails / 11,146 addresses / 190,390 recipients | same ✔ |
+| 4,558 groups / 10,675 flagged | 4,558 / 10,675 ✔ |
+| 280 export copies / 416 real re-sends / 118 live targets | same ✔ |
+| 10,675 drafts, 11.7 MB | 10,675, 11.7 MB ✔ |
+
+- **Byte-identical to the originals:** `parsed_emails.jsonl`, `sample_parsed_emails.jsonl`, `error_log.txt`, `duplicates_report.csv`; `extraction_stats.json` (ignoring the run timestamp); the DB's emails, dedup flags and recipients (row hash, excluding the notification columns). The drafts have the same 10,675 names and are identical apart from `Date:`/`Message-ID:`.
+- **The one expected difference:** `dedup_stats.json` `rows_flagged_this_run` is 10,675 fresh vs 10,665 originally, because in the original DB, Task 3 skipped rewriting the 10 notified rows (D40).
+- **Runtime:** parse 17.3 s · load 3.0 s · dedupe 4.6 s · notify (dry run) 12.8 s · **total 37.7 s**.
+- **Restore:** the originals (DB with **10 notifications**, the outputs, the 10,675 drafts, `send_log.csv`) were moved back and **all checksums match**. The fresh copies were replaced. The backup folder was then empty and removed.

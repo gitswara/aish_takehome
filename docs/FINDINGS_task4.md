@@ -336,3 +336,30 @@ No action is required if this is indeed a duplicate.
 **Unexpected / not sure:**
 1. **The cap was per run** (D49), so "re-run sends 0" needed a total budget (D58). Added and flagged before any further sends.
 2. **Server log lines:** the MCP server prints "Processing request of type CallToolRequest" to stderr for each call. That's harmless; it comes from the `mcp` library.
+
+---
+
+## Step 8: main.py + clean end-to-end run
+
+**What I did:** `main.py` runs the four step scripts in order as subprocesses (dry run by default; `--send-live`, `--preview` and `--max-sends` are passed to `notify.py`), stops on the first failure, and prints per-step timings.
+
+**Clean run:** generated outputs moved aside (git-ignored backup folder, MD5 checksums) → `python main.py` from scratch → compared → originals restored.
+
+| Check | Documented | Fresh |
+| --- | --- | --- |
+| Parsed / failed | 20,339 / 1,323 | ✔ same |
+| emails / addresses / recipient rows | 20,339 / 11,146 / 190,390 | ✔ same |
+| Groups / flagged | 4,558 / 10,675 | ✔ same |
+| Export copies / real re-sends / live targets | 280 / 416 / 118 | ✔ same |
+| Drafts | 10,675 (11.7 MB) | ✔ same |
+| `parsed_emails.jsonl`, `sample_parsed_emails.jsonl`, `error_log.txt`, `duplicates_report.csv` | | **byte-identical** |
+| `extraction_stats.json` (ignoring `run_at_utc`) | | identical |
+| DB emails + flags + recipients (excluding the notification columns) | | identical (row hash) |
+| Drafts (ignoring `Date:`/`Message-ID:`) | | 10,675 / 10,675 identical |
+| `dedup_stats.json` `rows_flagged_this_run` | 10,665 | 10,675: **expected**, the original skipped the 10 notified rows (D40) |
+
+**Runtime:** parse 17.3 s · load 3.0 s · dedupe 4.6 s · notify 12.8 s · **total 37.7 s**.
+
+**Restore:** the originals moved back. All 8 files and the 10,675 drafts match their pre-run checksums, and the DB again has **10 notified rows**. `git status` shows only the new `main.py` and the doc edits.
+
+**Unexpected / not sure:** my first move-aside command failed (zsh doesn't word-split `$FILES`). Nothing was moved or damaged. I verified that, removed the stray empty folder, and redid it in Python with checksums. Logged in AI_USAGE.md.

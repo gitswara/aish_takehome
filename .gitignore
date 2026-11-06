@@ -8,3 +8,4 @@ __pycache__/
 .pytest_cache/
 output/parsed_emails.jsonl
 output/sample_run/
+output/backup_*/
