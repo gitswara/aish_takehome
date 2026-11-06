@@ -43,6 +43,13 @@ ATTACHMENT_EXTENSIONS = ["xls", "xlsx", "doc", "docx", "ppt", "pptx", "pdf", "zi
                          "txt", "rtf", "csv", "wpd", "htm", "html", "jpg", "jpeg",
                          "gif", "bmp", "tif", "tiff", "msg"]
 
+# D11: heading detection (primary body only).
+HEADING_MAX_WORDS = 10          # longer lines are sentences, not headings
+HEADING_MIN_LETTERS = 4         # ALL-CAPS line needs at least this many letters
+HEADING_MIN_DISTINCT_LETTERS = 3   # rules out divider lines like "AAAAAAAA"
+HEADING_IGNORE_WORDS = {"FYI", "THANKS", "THANK YOU", "REGARDS", "ASAP", "OK", "PS",
+                        "NOTE", "URGENT", "CONFIDENTIAL", "ADVERTISEMENT"}
+
 TZ_ABBREVIATIONS = {
     "UT": 0, "UTC": 0, "GMT": 0,
     "EST": -5, "EDT": -4, "CST": -6, "CDT": -5,
@@ -285,6 +292,58 @@ def has_attachment(text):
 
 
 # ---------------------------------------------------------------------------
+# Step 10: headings  (D11: ALL-CAPS lines + numbered/lettered section lines,
+#                     primary body only)
+# ---------------------------------------------------------------------------
+# "1. Title", "2) Title", "A. Title", "IV. Title"
+NUMBERED_LINE = re.compile(r"^\s*(\d{1,2}|[A-Z]|[IVX]{1,4})[.)]\s+(\S.*)$")
+LASTNAME_FIRSTNAME = re.compile(r"^[A-Za-z'-]+,\s+[A-Za-z'-]+$")   # "Wingo, Angie"
+
+
+def is_all_caps_heading(line):
+    """'SCHEDULED SYSTEM OUTAGES:' -> True; 'THANKS', '[IMAGE]', 'AAAAAA' -> False."""
+    if "\t" in line or line.strip().startswith("-"):
+        return False          # table row, or an attachment line like "- MAY01.DOC"
+    text = line.replace("[IMAGE]", "").strip().rstrip(":").strip()
+    letters = [c for c in text if c.isalpha()]
+    digits = [c for c in text if c.isdigit()]
+    if len(digits) >= len(letters):
+        return False          # mostly numbers: an address or data line ("LA, CA 90036")
+    if len(letters) < HEADING_MIN_LETTERS or len(set(letters)) < HEADING_MIN_DISTINCT_LETTERS:
+        return False
+    if len(text.split()) > HEADING_MAX_WORDS or text.endswith("."):
+        return False
+    if any(ch in text for ch in "@/\\<>=|") or text.upper().strip("!?. ") in HEADING_IGNORE_WORDS:
+        return False
+    return all(c.isupper() for c in letters)
+
+
+def is_numbered_heading(line):
+    """'A. 2000 Key Facts --' -> True; 'R. Causey', '9. Wingo, Angie' -> False."""
+    match = NUMBERED_LINE.match(line)
+    if not match:
+        return False
+    label, rest = match.group(1), match.group(2).strip()
+    words = rest.split()
+    if len(words) > HEADING_MAX_WORDS or not (rest[0].isupper() or rest[0].isdigit()):
+        return False
+    if rest.endswith((".", "?", ",", ";")) and not rest.isupper():
+        return False          # a sentence, not a title
+    if label.isalpha() and len(words) < 2:
+        return False          # "R. Causey" is an initial + surname
+    if LASTNAME_FIRSTNAME.match(rest):
+        return False          # "9. Wingo, Angie" is a list of people
+    return True
+
+
+def extract_headings(body):
+    """Return the heading lines found in the primary body, one per line, or None."""
+    headings = [line.strip() for line in body.splitlines()
+                if is_all_caps_heading(line) or is_numbered_heading(line)]
+    return "\n".join(headings) if headings else None
+
+
+# ---------------------------------------------------------------------------
 # Step 6: mandatory-field check
 # ---------------------------------------------------------------------------
 def find_failure_reasons(record):
@@ -437,6 +496,28 @@ def print_stats(stats):
         print(f"  {field:22s} {a['filled']:7d} {a['percent']:5.1f}%   {b['filled']:7d} {b['percent']:5.1f}%")
 
 
+# ---------------------------------------------------------------------------
+# One file, start to finish (steps 2-6). Used by main() and by the tests.
+# ---------------------------------------------------------------------------
+def parse_file(path):
+    """Parse one email file.
+
+    Returns (record, failure_reasons, split_marker, stripped_notes_block).
+    failure_reasons is [] when the record is valid.
+    """
+    msg, raw_body = read_email(path)
+    record = extract_header_fields(msg, path)
+    body, forwarded, quoted, marker, stripped = split_body(raw_body)
+    record["body"] = body
+    record["forwarded_content"] = forwarded
+    record["quoted_content"] = quoted
+    # D21: search body + forwarded text. A Notes forward carries the
+    # original's attachment along; a reply's quoted text usually does not.
+    record["has_attachment"] = has_attachment(body) or has_attachment(forwarded)
+    record["headings"] = extract_headings(body)    # D11: primary body only
+    return record, find_failure_reasons(record), marker, stripped
+
+
 def relative_source(path):
     """Path relative to data/, e.g. 'maildir/lay-k/inbox/45.' (spec: source_file)."""
     return os.path.relpath(path, DATA_ROOT)
@@ -458,20 +539,11 @@ def main():
     notes_blocks_stripped = 0
     for path in paths:
         try:
-            msg, raw_body = read_email(path)
-            record = extract_header_fields(msg, path)
-            body, forwarded, quoted, marker, stripped = split_body(raw_body)
-            record["body"] = body
-            record["forwarded_content"] = forwarded
-            record["quoted_content"] = quoted
-            # D21: search body + forwarded text. A Notes forward carries the
-            # original's attachment along; a reply's quoted text usually does not.
-            record["has_attachment"] = has_attachment(body) or has_attachment(forwarded)
+            record, reasons, marker, stripped = parse_file(path)
             split_counts[marker or "no_marker"] = split_counts.get(marker or "no_marker", 0) + 1
             notes_blocks_stripped += stripped
 
             all_records.append(record)
-            reasons = find_failure_reasons(record)
             if reasons:
                 failures.append((record["source_file"], "; ".join(reasons)))
             else:

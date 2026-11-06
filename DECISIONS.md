@@ -100,7 +100,14 @@ Counts come from a scan of all 21,662 files before I wrote the parser. Counts ma
 
 - **Options:** (a) ALL-CAPS lines plus numbered or lettered section lines (`A. 2000 Key Facts`, `1. FERC CONTINUES…`) · (b) also short lines ending in `:` · (c) skip.
 - **I chose (a), from the primary `body` only,** so the `To:` / `cc:` blocks inside forwards aren't picked up. This is a nice-to-have in PLAN.md.
-- **Rows affected:** *(filled in at step 10)*. Over the whole text it was 1,765 (ALL-CAPS) and 1,019 (numbered); body-only will be lower.
+- **Rules as built (step 10), with thresholds in the config block:**
+  - **ALL-CAPS line:** at least `HEADING_MIN_LETTERS = 4` letters and `HEADING_MIN_DISTINCT_LETTERS = 3` different ones (rules out `AAAA…` dividers); at most `HEADING_MAX_WORDS = 10` words; doesn't end in `.`; no tab (table rows); doesn't start with `-` (attachment lines); fewer digits than letters (rules out addresses like `LA, CA 90036`); no `@ / \ < > = |`; not in `HEADING_IGNORE_WORDS` (`THANKS`, `FYI`, `ADVERTISEMENT`, …); `[IMAGE]` placeholders are removed first.
+  - **Numbered/lettered line:** `1.`, `2)`, `A.`, `IV.` followed by text that starts with a capital letter or digit; at most 10 words; doesn't end like a sentence (`.`, `?`, `,`, `;`) unless ALL-CAPS; a letter label needs at least 2 words (rules out initials like `R. Causey`); not `Lastname, Firstname` (rules out `9.  Wingo, Angie`).
+  - Stored as one heading per line (`\n`-joined), or `null` if none.
+- **How I tuned it:** a first version caught 654 `[IMAGE]` placeholders, 513 `AAAA…` dividers and name lists (`R. Causey`, `A. Fastow`). It also *missed* `A. 2000 Key Facts --`, the example this decision was based on. I added one exclusion at a time and re-checked samples.
+- **Rows affected:** **1,354** of 20,339 parsed emails (6.7%) have headings: 4,714 heading lines, median 2 per email. Before body-only filtering, the whole-text counts were 1,765 (ALL-CAPS) and 1,019 (numbered).
+- **Precision (heuristic, from a hand check of 30 random heading lines):** about 17 clearly headings, 4 borderline (instruction steps, `PLEASE DO NOT REPLY TO THIS EMAIL`), 9 not (names like `WHALLEY, LAWRENCE G,`, street addresses, ranked list items like `3. Sony Corp 3.38%`). That's roughly 60–70%.
+- **I accepted it as is.** Why I stopped tuning: the spec's definition of "headings" is vague and this is a nice-to-have field. The remaining noise is names, street addresses and ranked list items. Each needs its own rule, every rule risks dropping real headings, and each one is more code to explain for little gain. So I documented the noise instead.
 
 ## D12. Parser output format
 
@@ -281,3 +288,18 @@ Counts come from a scan of all 21,662 files before I wrote the parser. Counts ma
 - **17 of 17 count checks match** the numbers in this file (table in FINDINGS step 9).
 - **No text lost:** for all 20,339 parsed records, `body + forwarded_content + quoted_content` equals the original decoded body, ignoring whitespace and minus the 12 stripped D17 blocks. 0 mismatches.
 - **10 spot-checked records**, chosen to cover plain, Cc, attachment, nested forward, Outlook reply, Notes reply, D17, quoted-printable, non-ASCII and blank subject. All 10 pass automated checks against the raw headers (Message-ID, From, To count, Cc count, Subject), and I read every field by eye. Paths are listed in FINDINGS step 9.
+
+## Step 10–11 notes
+
+- **Step 10 (headings):** see D11 for the rules, tuning history, counts (1,354 parsed emails) and the ~60–70% precision estimate.
+- **Step 11 (tests):** to test whole emails, I moved the per-file work from `main()` into `parse_file(path)` (steps 2–6 for one file). `main()` and the tests both call it. The full-run outputs were byte-identical (MD5) before and after this refactor.
+- 8 pytest cases in `tests/test_parse_emails.py`; all pass in about 0.1 s:
+  - nested forward (D8, D22)
+  - D17 block + two-line Notes reply
+  - D19 single `>`
+  - D19 two `>` lines
+  - missing To (D4)
+  - placeholder date (D6)
+  - folded To + UTC date
+  - quoted-printable + D16
+- **The tests can fail:** I broke D19, D6 and D17 in memory one at a time, and each matching test failed as it should.

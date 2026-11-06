@@ -1,5 +1,5 @@
 {
-  "run_at_utc": "2026-11-06T00:34:56+00:00",
+  "run_at_utc": "2026-11-06T01:27:48+00:00",
   "limit": null,
   "files_found": 21662,
   "files_found_by_mailbox": {
@@ -108,6 +108,10 @@
     "has_attachment": {
       "filled": 1336,
       "percent": 6.2
+    },
+    "headings": {
+      "filled": 1573,
+      "percent": 7.3
     }
   },
   "field_completeness_parsed_ok": {
@@ -190,6 +194,10 @@
     "has_attachment": {
       "filled": 1149,
       "percent": 5.6
+    },
+    "headings": {
+      "filled": 1354,
+      "percent": 6.7
     }
   }
 }

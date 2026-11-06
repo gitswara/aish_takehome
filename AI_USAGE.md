@@ -47,6 +47,7 @@ How I used Claude Code (Opus 5.5) during this challenge: what I asked for, what 
   - `lay-k/elizabeth/23.`: the wrapped `To` header unfolded into 6 addresses. The body is empty, the full chain is in `forwarded_content`, and the attachment was found in forwarded content (uppercase `.DOC`).
   - `lay-k/sent/71.`: split at the Notes one-line reply header (with seconds in the time). The body is Ken's letter sent by Rosalee, and the quoted part is Loyal's original.
   - `lavorato-j/all_documents/8.`: the blank subject is stored as `""`, and Cc and Bcc are identical. In that same file I found evidence for D7: `X-bcc` is empty while `X-cc` names the recipient.
+- **Test-validation technique (step 11):** all 8 pytest cases passed on the first run. A test that has never failed might not be testing anything, so Claude deliberately broke three rules *in memory*, one at a time: undoing D19 (single `>` = quote), emptying the D6 placeholder-date list, and disabling the D17 strip. It re-ran the matching test each time, and each failed as it should, which shows the tests catch regressions. The source code was never changed for this. **Lesson:** when tests pass first time, prove they can fail.
 - **Also caught in step 3:** Python 3.13's `getaddresses` silently drops a whole address list when one address is malformed (strict mode). A verification script comparing parsed counts with the raw scan found it (D18).
 
 ---

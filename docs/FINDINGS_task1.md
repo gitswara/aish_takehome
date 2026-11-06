@@ -690,3 +690,75 @@ Auto-checks vs raw: Message-ID ✔ · From ✔ · To count ✔ · Cc count ✔ �
 
 Auto-checks vs raw: Message-ID ✔ · From ✔ · To count ✔ · Cc count ✔ · Subject ✔
 
+
+---
+
+## Step 10: headings (nice-to-have)
+
+**What I did:** `extract_headings()` returns the heading lines of the **primary body only** (D11), one per line, or `null`. A line counts if `is_all_caps_heading()` or `is_numbered_heading()` is true. All thresholds are in the config block (`HEADING_*`); the full rules are in D11.
+
+**How I tuned it** (each change re-checked on samples):
+
+| Version | Problem seen | Fix |
+| --- | --- | --- |
+| first prototype | 654 `[IMAGE]` placeholders, 513 `AAAA…` divider lines | remove `[IMAGE]`; need ≥3 different letters |
+| | `R. Causey`, `A. Fastow` (initials) | a letter label needs ≥2 words |
+| | `9.  Wingo, Angie` (lists of people) | skip `Lastname, Firstname` |
+| v2 | missed `A. 2000 Key Facts --`, the D11 example | allow text starting with a digit |
+| | table rows `ESPN1\t12410\t810`, `- MAY01.DOC`, `LA, CA 90036` | skip lines with tabs, leading `-`, or digits ≥ letters |
+| v3 | `THANKS!` | ignore-words compared without trailing `!?.` |
+
+**Counts:**
+- Full run: **1,354 of 20,339 parsed emails (6.7%) have headings** (1,573 of 21,662 across all processed). Median 2 headings per email.
+- 200-file sample first: 13 parsed emails with headings.
+
+**Example:** `delainey-d/notes_inbox/17.` (an RTO strategy memo) gives:
+```
+A. 2000 Key Facts --
+1. FERC CONTINUES TO RELY UPON MONOPOLIES TAKING VOLUNTARY ACTIONS.
+4. PJM CONTINUES TO BE FERC'S SHINING LIGHT.
+6. SURPRISINGLY FLORIDA IS MOVING ALONG
+B. 2001 Steps -
+2. COORDINATE GOVERNMENT AFFAIRS SUPPORT MORE CLOSELY WITH THE DESK.
+3. PUSH INTEGRATION OF THE TIGHT NORTHEAST POOLS.
+4. CONTINUE TO FIGHT IN THE TRENCHES.
+DIVESTITURE
+```
+(Points 2, 3 and 5 under "2000 Key Facts" are missed because they are longer than 10 words.)
+
+**Precision (hand check of 30 random heading lines):** about 17 are clearly headings (`ENW VENTURES PORTFOLIO NEWS`, `WHY IS ENRON MIGRATING TO OUTLOOK 2000?`, `5. Project Ownership? / Management`), 4 are borderline (instruction steps, `PLEASE DO NOT REPLY TO THIS EMAIL`), and 9 are not (`WHALLEY, LAWRENCE G,`, `6619 N SHERIDAN 401`, `3. Sony Corp 3.38%`). **Roughly 60–70%.**
+
+**Unexpected / not sure:**
+1. **Precision is moderate.** The spec's "headings" is vague and this is a nice-to-have, so I stopped tuning once the remaining noise was names, addresses and ranked list items: fixing those would need more rules than the field is worth. Documented in D11.
+2. Long numbered ALL-CAPS points (more than 10 words) are missed, as in the example above.
+
+---
+
+## Step 11: Tests
+
+**What I did:**
+- **Refactor:** moved the per-file work (steps 2–6) from `main()` into `parse_file(path)`, so the tests run exactly the same code as the pipeline. The full-run outputs (`parsed_emails.jsonl`, `error_log.txt`) were **byte-identical** (MD5) before and after.
+- **Tests:** wrote `tests/test_parse_emails.py`. Each test writes a small fake email in the Enron format (CRLF headers, LF body) to a pytest temp folder and calls `parse_file()`. No Enron data is needed.
+
+| Test | Checks | Decision |
+| --- | --- | --- |
+| `test_nested_forward_goes_to_forwarded_content` | 2-level Notes forward → body `""`, both levels in forwarded, not a failure | D8, D22 |
+| `test_leading_notes_block_is_stripped` | Notes block removed; body = Kay's note; two-line reply header starts quoted | D17 |
+| `test_single_gt_line_is_not_a_quote` | `  >40 GW   $250/MWh` stays in body | D19 |
+| `test_two_gt_lines_are_a_quote` | two `>` lines → quoted, body = text above | D19 |
+| `test_missing_to_fails` | no To → reasons `["missing To"]` | D4 |
+| `test_placeholder_date_fails` | 1979-12-31 16:00 PST → `1980-01-01T00:00:00+00:00`, `["placeholder date"]` | D6 |
+| `test_folded_to_header_and_utc_date` | To wrapped over 3 lines → 5 addresses; 16:39 PDT → 23:39 UTC | D18, dates |
+| `test_quoted_printable_decoded_only_when_declared` | `=01,` → `'`, soft breaks and `=20` removed | D13, D16 |
+
+**Result:** `pytest -q` → **8 passed in 0.06 s**.
+
+**Mutation check** (proof the tests can fail): I broke each rule in memory and re-ran the matching test.
+
+| Rule broken | Test | Result |
+| --- | --- | --- |
+| D19 undone (single `>` = quote) | `test_single_gt_line_is_not_a_quote` | failed ✔ |
+| D6 placeholder list emptied | `test_placeholder_date_fails` | failed ✔ |
+| D17 strip disabled | `test_leading_notes_block_is_stripped` | failed ✔ |
+
+**Unexpected / not sure:** all 8 passed on the first run, which is why I added the mutation check.

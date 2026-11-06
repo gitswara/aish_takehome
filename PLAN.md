@@ -20,8 +20,8 @@ Status: `[ ]` todo · `[x]` done. **M** = must-have, **N** = nice-to-have (cut f
 7. [x] **M** Write `output/parsed_emails.jsonl`, one email per line (D12). Done: 20,339 records, 19 fields (+ `headings` in step 10), 51 MB, git-ignored. A committed 18-record sample is in `output/sample_parsed_emails.jsonl` (D23).
 8. [x] **M** Stats: files found, parsed, failed (by reason), and completeness % per field. Printed and saved to `output/extraction_stats.json`. Done: completeness is reported over all processed files and over parsed OK; subject shown as header present (100%) and non-blank (92.8%).
 9. [x] **M** Run on all 21,662 files, check the counts against DECISIONS.md, and spot-check about 10 records by hand. Fill in the *(at run)* counts. Done: 17/17 count checks ✔, no text lost in 20,339 records, 10/10 spot-checks ✔.
-10. [ ] **N** `headings`: ALL-CAPS and numbered section lines, primary body only (D11). *Not cut: done after 6–9 (24-hour take-home).*
-11. [ ] **N** pytest: 5–8 small cases on parser edge cases: nested forward, D17 Notes block, D19 single `>` not a quote, missing To → failure, placeholder date → failure. *Not cut: done after 6–9.*
+10. [x] **N** `headings`: ALL-CAPS and numbered section lines, primary body only (D11). Done: 1,354 parsed emails have headings; ~60–70% precision on a hand check of 30 lines.
+11. [x] **N** pytest: 5–8 small cases on parser edge cases: nested forward, D17 Notes block, D19 single `>` not a quote, missing To → failure, placeholder date → failure. Done: 8 tests in `tests/test_parse_emails.py`, all pass (`pytest -q`); 3 mutation checks confirm they catch broken rules.
 
 After each step: update PLAN.md, DECISIONS.md (counts) and ARCHITECTURE.md, and append the step report to `docs/FINDINGS_task1.md`.
 

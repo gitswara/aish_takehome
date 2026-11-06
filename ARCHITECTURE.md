@@ -8,7 +8,7 @@ Inputs → scripts → outputs. (Pipeline sections get added as I build each ste
 data/maildir/{lay-k,skilling-j,whalley-l,lavorato-j,delainey-d}/**   (read-only, 21,662 files)
         │
         ▼
- src/parse_emails.py [--limit N] ── discover files → read bytes, CRLF→LF, decode cp1252, QP if declared, fix \x01, → ' → header fields (UTC dates, lenient address lists) → body split (strip D17 block, cut at first marker) → has_attachment (filename patterns) → mandatory-field check (fail → error_log.txt) → email parser → fields → body split → checks
+ src/parse_emails.py [--limit N] ── discover files → read bytes, CRLF→LF, decode cp1252, QP if declared, fix \x01, → ' → header fields (UTC dates, lenient address lists) → body split (strip D17 block, cut at first marker) → has_attachment (filename patterns) → headings (primary body) → mandatory-field check (fail → error_log.txt) → email parser → fields → body split → checks
         │
         ├──► output/parsed_emails.jsonl      one parsed email per line (input to Task 2); 51 MB, git-ignored
         ├──► output/sample_parsed_emails.jsonl  18-record sample, committed (D23)
@@ -20,6 +20,8 @@ data/maildir/{lay-k,skilling-j,whalley-l,lavorato-j,delainey-d}/**   (read-only,
 **Sample runs:** `python src/parse_emails.py --limit 200` writes its three outputs to `output/sample_run/` (git-ignored, D24). It never touches `error_log.txt`, `output/parsed_emails.jsonl` or `output/extraction_stats.json`.
 
 **Regenerating the JSONL:** `output/parsed_emails.jsonl` is git-ignored because it's 51 MB (D23). To rebuild it, run `python src/parse_emails.py` from the project root with the `.venv` active and the Enron data in `data/maildir/`. It takes about 11 seconds. A full run (no `--limit`) also refreshes the committed sample.
+
+**Tests:** `pytest -q` runs `tests/test_parse_emails.py` (8 edge-case tests, about 0.1 s, no Enron data needed). Each test writes a small fake email and calls `parse_file()`, the same per-file function `main()` uses.
 
 The input files are never modified. Decisions are D4–D14 in DECISIONS.md.
 
