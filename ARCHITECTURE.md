@@ -60,6 +60,17 @@ output/enron.db ──► src/detect_duplicates.py
 
 **Run:** `python src/detect_duplicates.py` (about 4 s; re-runnable with identical results). `--limit N` is a print-only preview of N blocks.
 
+## Notifications (Task 4: D47–D56; dry run built)
+
+```
+output/enron.db ──► src/notify.py (dry run by default)
+                     1. flagged pairs (reuses detect_duplicates.read_flagged_pairs) + each group's target
+                     2. notice: §4.2 template body · subject per D52 · References/In-Reply-To = flagged Message-ID
+                     3. output/replies/<safe Message-ID>.eml × 10,675 (To = original sender; never sent)
+                     (steps 4–7, next) --send-live: real re-send targets → MCP client (stdio) → gmail_server.py
+                                       → send_email(to=NOTIFY_TO) → output/send_log.csv + notification_sent/date
+```
+
 **Tests:** `pytest -q` runs 15 tests in about 0.1 s, with no Enron data needed:
 - `tests/test_parse_emails.py` (8): each writes a small fake email and calls `parse_file()`, the same per-file function `main()` uses.
 - `tests/test_load_db.py` (7): each builds a temporary SQLite DB from synthetic records and calls the loader's own functions.

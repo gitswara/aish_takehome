@@ -82,14 +82,14 @@ After each step: update PLAN.md, DECISIONS.md and ARCHITECTURE.md, and append th
 
 Decisions D47–D56 (all decided). Findings in `docs/FINDINGS_task4.md`. **Time: about 10 h left at the start of Task 4 (about hour 14).** Target: Task 4 done by about hour 17, D43 by about hour 18, then README/AI_USAGE and final checks.
 
-1. [ ] **M** Read the targets from the DB:
+1. [x] **M** Read the targets from the DB:
    - every flagged duplicate (for drafts)
    - the target per group = the latest duplicate by (date, source_file) (D39)
    - `same_timestamp` / `likely_export_copy` / `recipient_overlap`, reusing the functions in `detect_duplicates.py`
 
    Config block at the top: `MAX_SENDS_DEFAULT = 10`, `MAX_SENDS_LIMIT = 100`, `SEND_DELAY_SECONDS = 1`, retry/backoff, draft `From`, file paths.
-2. [ ] **M** Build the notice: the §4.2 template body; subject per D52; headers per D53 (`References` + `In-Reply-To` = the flagged email's Message-ID); safe file names with a uniqueness check.
-3. [ ] **M** Dry run (default):
+2. [x] **M** Build the notice: the §4.2 template body; subject per D52; headers per D53 (`References` + `In-Reply-To` = the flagged email's Message-ID); safe file names with a uniqueness check.
+3. [x] **M** Dry run (default) (*done: 10,675 drafts, 11.7 MB → commit all; all parse; DB unchanged*):
    - clear `output/replies/` and write 10,675 `.eml` drafts (D47, D54); no network, no DB writes
    - print the counts
    - **measure the total draft size → apply the D48 rule** (commit all if ≤ ~25 MB, else zip)

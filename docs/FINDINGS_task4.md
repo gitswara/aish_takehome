@@ -186,3 +186,79 @@ The template asks the recipient to "reply with CONFIRM to restore it to active s
 - **CONFIRM replies** are out of scope (a known limitation).
 - **D43** (sender-alias report) comes after Task 4 works.
 - **One live send already exists** (the setup test, Claude Code → Gmail, screenshot in `docs/mcp_test_send.png`). The pipeline's first live run adds `send_log.csv` evidence.
+
+---
+
+## Steps 1–3: targets, notice builder, dry run
+
+**What I did:** `src/notify.py`.
+- `read_notices()` reads every flagged duplicate (reusing `detect_duplicates.read_flagged_pairs()`, which already computes `same_timestamp`, `likely_export_copy` and `recipient_overlap`) and marks each group's **target**: the latest by (date, source_file), D39.
+- `notice_subject()` (D52), `build_body()` (the §4.2 template) and `build_message()` (D53 headers) build each notice.
+- `safe_filename()` turns a Message-ID into a file name; `write_drafts()` clears `output/replies/*.eml`, checks the names are unique, and writes each draft.
+- The dry run is the default: no network, no DB writes. `--send-live` refuses ("not built yet").
+
+**Counts:**
+
+| | Count |
+| --- | --- |
+| Flagged duplicates → drafts written | **10,675** |
+| Groups (targets) | 4,558 |
+| Live-eligible real re-send targets (D50) | **141** |
+| Already notified | 0 |
+| **Total draft size** (content bytes) | **11.7 MB** (42 MB on disk) → **D48: commit all** |
+| Run time | about 12 s |
+
+**Checks on all 10,675 drafts:**
+- every draft parses with Python's `email` parser
+- `References` = `In-Reply-To` = a `duplicate_message_id` in the report
+- file name = `safe_filename(References)`, with no collisions
+- every subject starts `[Duplicate Notice] Re: `, with 0 doubled prefixes; 1,070 use `(no subject)`
+- all `text/plain; charset=utf-8`
+- the DB MD5 is unchanged
+
+**Three drafts read by eye:**
+
+| Case | File (`output/replies/…`) | To | Subject | Score |
+| --- | --- | --- | --- | --- |
+| A. folder copy | `23185873.1075840090105.JavaMail.evans_at_thyme.eml` | `jan_levine@travisintl.com` | `[Duplicate Notice] Re: Education Survey` | 100.00% (both dates 1998-01-06 01:32:00 UTC) |
+| B. real re-send target | `18685648.1075861576356.JavaMail.evans_at_thyme.eml` | `ccox@businesscouncil.com` | `[Duplicate Notice] Re: October 01 Meeting Minutes` | 100.00% (Nov 5 18:16 → Nov 6 15:58 UTC) |
+| C. blank subject, later | `19095595.1075857757440.JavaMail.evans_at_thyme.eml` | `john.lavorato@enron.com` | `[Duplicate Notice] Re: (no subject)` | 99.84% (2000-01-03 → 2000-01-17) |
+
+Full draft B:
+
+```
+From: Email Deduplication System <dedup@localhost>
+To: ccox@businesscouncil.com
+Subject: [Duplicate Notice] Re: October 01 Meeting Minutes
+Date: Fri, 06 Nov 2026 02:35:07 +0000
+Message-ID: <179393250735.16659.15327528686534525734@dedup.local>
+References: <18685648.1075861576356.JavaMail.evans@thyme>
+In-Reply-To: <18685648.1075861576356.JavaMail.evans@thyme>
+Content-Type: text/plain; charset="utf-8"
+
+This is an automated notification from the Email Deduplication System.
+
+Your email has been identified as a potential duplicate:
+
+  Your Email (Flagged):
+    Message-ID:  <18685648.1075861576356.JavaMail.evans@thyme>
+    Date Sent:   2001-11-06 15:58:24 UTC
+    Subject:     October 01 Meeting Minutes
+
+  Original Email on Record:
+    Message-ID:  <31820720.1075862884882.JavaMail.evans@thyme>
+    Date Sent:   2001-11-05 18:16:04 UTC
+
+  Similarity Score: 100.00%
+
+If this was NOT a duplicate and you intended to send this email,
+please reply with CONFIRM to restore it to active status.
+
+No action is required if this is indeed a duplicate.
+```
+
+**Unexpected / not sure:**
+1. **Template spacing:** ASSIGNMENT.md shows a blank line after every template line (an artifact of document conversion). I used the evident structure: blank lines between sections, none within.
+2. **A blank subject in the body:** the body's `Subject:` line keeps the original exactly (empty), and only the header uses `(no subject)` (D52). Draft C shows this.
+3. **Drafts change on every run:** `Date:` is "current timestamp" per the spec, and `Message-ID:` is new each time, so a re-run modifies all 10,675 files in git. Plan: commit the drafts **once, from the final run**.
+4. **`Date:` reads 2026-11-06,** because it's the current time in UTC. Locally it's still Nov 5 evening.

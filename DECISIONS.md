@@ -637,7 +637,7 @@ Findings in `docs/FINDINGS_task4.md`. I accepted the recommendations for D47, D4
 - **I chose:** live `To` is **always `NOTIFY_TO`**, and the run **refuses** if it's unset. Drafts use the real sender (the template exactly). `send_log.csv` adds `intended_recipient`. The Enron addresses are never contacted.
 
 ## D52. Subject line
-- **I chose:** strip existing reply/forward prefixes from the original subject (the D35 regex), then `[Duplicate Notice] Re: <subject>`. A blank subject becomes `[Duplicate Notice] Re: (no subject)`. The body's `Subject:` line keeps the original exactly.
+- **I chose:** strip existing reply/forward prefixes from the original subject (the D35 regex), then `[Duplicate Notice] Re: <subject>`. A blank subject becomes `[Duplicate Notice] Re: (no subject)`. **Amended after the dry run (my decision):** the body's `Subject:` line also shows `(no subject)` for blank subjects, so it's consistent with the header. Otherwise the body keeps the original subject exactly.
 - **Rows affected:** 1,456 targets avoid `Re: Re:`; 321 blank subjects get `(no subject)`.
 
 ## D53. Draft `.eml` format (with my checks)
@@ -669,3 +669,24 @@ Findings in `docs/FINDINGS_task4.md`. I accepted the recommendations for D47, D4
 
 ## D56. Commands
 - **I chose:** `src/notify.py`, **dry run by default** (drafts only, no network, no DB writes); `--send-live [--max-sends N]` sends. Plus a top-level `main.py` that runs parse → load → dedup → notify (dry run unless `--send-live`), for the §5 single command.
+
+## Task 4, steps 1–3 notes (targets, notice builder, dry run)
+
+- `src/notify.py` (dry run only so far; `--send-live` refuses with "not built yet"):
+  - `read_notices()` reuses `detect_duplicates.read_flagged_pairs()`, which already computes `same_timestamp`, `likely_export_copy` and `recipient_overlap`
+  - it marks each group's target (latest by date, then source_file)
+  - `build_message()` builds the D53 notice; `write_drafts()` clears and rewrites `output/replies/`
+- **Counts:** 10,675 flagged → **10,675 drafts** · 4,558 targets · **141** live-eligible real re-send targets · 0 already notified.
+- **D48 outcome:** total draft size **11.7 MB** (content bytes; 42 MB on disk because each small file takes a full disk block) → **≤ 25 MB → commit all** as plain files.
+- **Checks:**
+  - all 10,675 drafts parse with Python's `email` parser
+  - every `References` matches a row in `duplicates_report.csv`, and `In-Reply-To` = `References`
+  - every file name = `safe_filename(References)`; no collisions
+  - every subject starts `[Duplicate Notice] Re: `; 0 doubled `Re: Re:` / `Re: FW:`; 1,070 drafts use `(no subject)`
+  - all `text/plain; charset=utf-8`
+  - DB MD5 unchanged (the dry run writes nothing to the DB)
+  - run time about 12 s
+- **The template's spacing:** ASSIGNMENT.md's text (converted from a document) puts a blank line after every template line. I used the template's evident structure (blank lines between the sections, none inside a section).
+- **A blank subject in the body:** first left empty; **changed after review:** it now also shows `(no subject)`, like the header (D52 amended).
+- **Drafts change on every run:** `Date:` (current time, per the spec) and `Message-ID:` differ on each run, so all 10,675 files show as modified in git after any re-run. **I decided:** commit code and docs now; commit `output/replies/` **once, from the final run**.
+- **`Date:` header:** current time in **UTC with the `+0000` offset**, e.g. `Date: Fri, 06 Nov 2026 02:35:07 +0000` (`email.utils.format_datetime` on a UTC datetime). Verified in the drafts.
