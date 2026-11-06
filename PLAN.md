@@ -47,7 +47,7 @@ Decisions D25–D34. Findings in `docs/FINDINGS_task2.md`.
    - run report: inserted / updated / deleted / kept / recipient rows / repeats skipped
 4. [x] **M** Load all 20,339 (`--limit` first, to a separate DB file as in D24). Check row counts: emails 20,339; addresses 13,390; recipients 191,044 minus repeats. **Run it twice** and confirm the second run gives 0 inserted / 20,339 updated, with Task 3/4 columns unchanged. *Done: 20,339 / 11,146 / 190,390; re-run 0 inserted / 20,339 updated; integrity + FK checks clean.*
 5. [x] **M** `sample_queries.sql`: queries 1–5 with their real outputs written into the expected-output comments (D34). Done; the DB is unchanged after running it (MD5).
-6. [~] **N** Query 6 (duplicate groups): written now (returns no rows yet); **fill its real output after Task 3.**
+6. [x] **N** Query 6 (duplicate groups): real output filled in after Task 3 (4,558 groups; top 10 listed).
 7. [x] **N** pytest: upsert keeps Task 3/4 state; recipients are replaced; a stale row is deleted, but kept if notified; the unique constraint rejects a plain duplicate INSERT. Done: 7 tests in `tests/test_load_db.py` (15 in total with the parser tests); 3 mutation checks catch broken rules.
 
 After each step: update PLAN.md, DECISIONS.md and ARCHITECTURE.md, and append the step report to `docs/FINDINGS_task2.md`.
@@ -69,9 +69,9 @@ Decisions D35–D44 (all decided). Findings in `docs/FINDINGS_task3.md`.
    - groups, emails flagged, average group size
    - folder copies vs later repeats; score bands
    - the latest duplicate per group (= Task 4 targets)
-6. [ ] **M** Run: `--limit` first (writes to `output/sample_run/`), then the full DB. Check against the estimates (about 4,537 groups / 10,768 flagged, or ~4,558 / ~10,675 with D44). **Run twice:** same flags; notified rows untouched. Spot-check about 5 groups by hand: **at least** a folder-copy group (`same_timestamp`), a later re-send, and a template false positive (Delainey "Approval for reviewer"), plus a 90–95 near match and a blank-subject block. **List their Message-IDs and source files so I can check one myself.**
-7. [ ] **M** Fill query 6's real output in `sample_queries.sql` (Task 2 step 6).
-8. [ ] **N** pytest: subject normalisation; anchor grouping (no flagged score below 90); tie-break; D44 empty-body rule; notified rows untouched on re-run.
+6. [x] **M** Run: `--limit` first (writes to `output/sample_run/`), then the full DB. Check against the estimates (about 4,537 groups / 10,768 flagged, or ~4,558 / ~10,675 with D44). **Run twice:** same flags; notified rows untouched. Spot-check about 5 groups by hand: **at least** a folder-copy group (`same_timestamp`), a later re-send, and a template false positive (Delainey "Approval for reviewer"), plus a 90–95 near match and a blank-subject block. **List their Message-IDs and source files so I can check one myself.** *Done: 6 groups; 11 rows re-scored from the raw files, all match. New finding → D45 (open).*
+7. [x] **M** Fill query 6's real output in `sample_queries.sql` (Task 2 step 6). Done.
+8. [x] **N** pytest: subject normalisation; anchor grouping (no flagged score below 90); tie-break; D44 empty-body rule; notified rows untouched on re-run. *Done: 8 tests + D45/D46 tests; 23 total pass; mutation-checked.*
 9. [ ] **N** D43 alias report: **only after Task 4 works.** Sender aliases (e.g. `john.lavorato@enron.com` 2,299 sent vs `lavorato@enron.com` 401) won't group under the spec's same-`from_address` rule. Follow the spec, document it, and count the groups that would merge if aliases were combined, without changing flags.
 
 After each step: update PLAN.md, DECISIONS.md and ARCHITECTURE.md, and append the step report to `docs/FINDINGS_task3.md`.
@@ -81,4 +81,4 @@ After each step: update PLAN.md, DECISIONS.md and ARCHITECTURE.md, and append th
 ## Later tasks (planned when I get there)
 
 - Task 4: Draft `.eml` replies + live send via MCP, to my Gmail only
-- README.md and AI_USAGE.md, written at the end. README must say: `output/parsed_emails.jsonl` is git-ignored (D23); regenerate it with `python src/parse_emails.py`; a committed 18-record sample is in `output/sample_parsed_emails.jsonl`. Quote the **parsed** attachment count: **1,149** of 20,339 parsed emails have `has_attachment = true` (1,336 across all processed files). `--limit N` writes to `output/sample_run/` (D24).
+- README.md and AI_USAGE.md, written at the end. README must say: `output/parsed_emails.jsonl` is git-ignored (D23); regenerate it with `python src/parse_emails.py`; a committed 18-record sample is in `output/sample_parsed_emails.jsonl`. **Known limitations to list:** the duplicate rule ignores recipients, so a mass announcement sent in batches to different people (case B, OWA notice: 15 vs 88 recipients, overlap 0) counts as a duplicate (see `recipient_overlap`, D46); template emails ("Approval for reviewer") pass 90%; sender aliases don't group (D43); export copies with shifted clocks (D45). Quote the **parsed** attachment count: **1,149** of 20,339 parsed emails have `has_attachment = true` (1,336 across all processed files). `--limit N` writes to `output/sample_run/` (D24).

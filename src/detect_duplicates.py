@@ -30,7 +30,11 @@ REPORT_CSV = os.path.join(PROJECT_ROOT, "duplicates_report.csv")          # D42
 STATS_JSON = os.path.join(PROJECT_ROOT, "output", "dedup_stats.json")     # D42
 REPORT_COLUMNS = ["duplicate_message_id", "original_message_id", "subject", "from_address",
                   "duplicate_date", "original_date", "similarity_score",   # the 7 spec columns
-                  "same_timestamp"]                                        # D39 extra column
+                  "same_timestamp",                                        # D39 extra column
+                  "likely_export_copy",                                    # D45 extra column
+                  "recipient_overlap"]                                     # D46 extra column
+EXPORT_COPY_MAX_HOURS = 24     # D45: max whole-hour gap for a Notes/Outlook export copy
+NOTES_FOLDER_MARKER = "\\Notes Folders\\"   # D45: Lotus Notes exports have this in X-Folder
 
 # D35: one or more reply/forward prefixes at the start: "Re:", "RE: FW:", "Fwd[2]:" ...
 REPLY_PREFIXES = re.compile(r"^\s*((re|fw|fwd)\s*(\[\d+\])?\s*:\s*)+", re.IGNORECASE)
@@ -168,38 +172,114 @@ def write_flags(conn, groups):
 # ---------------------------------------------------------------------------
 # Step 4: duplicates_report.csv, built from what is stored in the DB
 # ---------------------------------------------------------------------------
+def is_notes_folder(x_folder):
+    """True for a Lotus Notes export (X-Folder contains '\\Notes Folders\\'),
+    False for an Outlook (.pst) export (D45)."""
+    return NOTES_FOLDER_MARKER in (x_folder or "")
+
+
+def likely_export_copy(dup_date, orig_date, score, dup_folder, orig_folder):
+    """D45: the same email exported twice with a shifted clock.
+
+    True when ALL of: score is 100; the gap is an exact whole number of hours,
+    more than 0 and at most EXPORT_COPY_MAX_HOURS; and one copy is in a Notes
+    folder while the other is in an Outlook folder.
+    """
+    if score != 100:
+        return False
+    gap_hours = (datetime.fromisoformat(dup_date) - datetime.fromisoformat(orig_date)).total_seconds() / 3600
+    if gap_hours <= 0 or gap_hours > EXPORT_COPY_MAX_HOURS or gap_hours != int(gap_hours):
+        return False
+    return is_notes_folder(dup_folder) != is_notes_folder(orig_folder)
+
+
+def recipient_overlap(recipients_a, recipients_b):
+    """D46: share of To+Cc recipients two emails have in common, 0-100.
+
+    = |A and B| / |A or B| * 100 (Jaccard). Both empty -> 100 (nothing differs).
+    """
+    a, b = set(recipients_a), set(recipients_b)
+    if not a and not b:
+        return 100.0
+    return round(100 * len(a & b) / len(a | b), 1)
+
+
+def read_to_cc(conn):
+    """message_id -> set of To+Cc addresses (Bcc ignored: it copies Cc, D7)."""
+    recipients = {}
+    for message_id, address in conn.execute(
+            "SELECT e.message_id, a.address FROM email_recipients r "
+            "JOIN emails e ON e.id = r.email_id JOIN addresses a ON a.id = r.address_id "
+            "WHERE r.recipient_type IN ('to', 'cc')"):
+        recipients.setdefault(message_id, set()).add(address)
+    return recipients
+
+
 def read_flagged_pairs(conn):
-    """Every flagged email joined to its original, as stored in the DB."""
-    return conn.execute(
+    """Every flagged email joined to its original, as stored in the DB, with the
+    three extra report columns computed (D39, D45, D46). Returns a list of dicts."""
+    recipients = read_to_cc(conn)
+    rows = conn.execute(
         "SELECT d.message_id, o.message_id, d.subject, d.from_address, d.date, o.date, "
-        "       d.similarity_score, d.source_file "
+        "       d.similarity_score, d.source_file, d.x_folder, o.x_folder "
         "FROM emails d JOIN emails o ON o.message_id = d.duplicate_of "
         "WHERE d.is_duplicate = 1 "
         "ORDER BY o.date, o.message_id, d.date, d.source_file").fetchall()
+    pairs = []
+    for dup_id, orig_id, subject, sender, dup_date, orig_date, score, source, dup_folder, orig_folder in rows:
+        pairs.append({
+            "duplicate_message_id": dup_id, "original_message_id": orig_id,
+            "subject": subject, "from_address": sender,
+            "duplicate_date": dup_date, "original_date": orig_date,
+            "similarity_score": score, "source_file": source,
+            "same_timestamp": dup_date == orig_date,
+            "likely_export_copy": likely_export_copy(dup_date, orig_date, score, dup_folder, orig_folder),
+            "recipient_overlap": recipient_overlap(recipients.get(dup_id, set()),
+                                                   recipients.get(orig_id, set())),
+        })
+    return pairs
 
 
 def write_report(pairs, path):
     with open(path, "w", newline="", encoding="utf-8") as f:
         writer = csv.writer(f)
         writer.writerow(REPORT_COLUMNS)
-        for dup_id, orig_id, subject, sender, dup_date, orig_date, score, _source in pairs:
-            writer.writerow([dup_id, orig_id, subject, sender, dup_date, orig_date,
-                             f"{score:.{SCORE_DECIMALS}f}", dup_date == orig_date])
+        for p in pairs:
+            row = [p[c] for c in REPORT_COLUMNS]
+            row[REPORT_COLUMNS.index("similarity_score")] = f"{p['similarity_score']:.{SCORE_DECIMALS}f}"
+            writer.writerow(row)
 
 
 # ---------------------------------------------------------------------------
 # Step 5: statistics
 # ---------------------------------------------------------------------------
+def is_real_resend(pair):
+    """Later than its original and not a D45 export copy."""
+    return not pair["same_timestamp"] and not pair["likely_export_copy"]
+
+
+def overlap_bands(values):
+    return {
+        "100": sum(1 for v in values if v == 100),
+        "50_to_under_100": sum(1 for v in values if 50 <= v < 100),
+        "over_0_to_under_50": sum(1 for v in values if 0 < v < 50),
+        "0": sum(1 for v in values if v == 0),
+    }
+
+
 def build_stats(emails, blocks, candidate_blocks, pairs, counters, rows_flagged, conflicts):
-    """Spec stats (groups, flagged, average group size) plus the D39 split,
-    score bands, and the Task 4 targets (latest duplicate of each group)."""
+    """Spec stats (groups, flagged, average group size) plus the D39/D45 split,
+    score and recipient-overlap bands, and the Task 4 targets."""
     groups = {}
-    for dup_id, orig_id, _subj, _from, dup_date, orig_date, score, source in pairs:
-        groups.setdefault(orig_id, []).append((dup_date, source, dup_id, dup_date == orig_date))
+    for p in pairs:
+        groups.setdefault(p["original_message_id"], []).append(p)
     # Task 4 target = the latest duplicate in each group, by (date, source_file) (D39).
-    targets = [max(members) for members in groups.values()]
-    scores = [p[6] for p in pairs]
+    targets = [max(members, key=lambda p: (p["duplicate_date"], p["source_file"]))
+               for members in groups.values()]
+    scores = [p["similarity_score"] for p in pairs]
     sizes = [len(members) + 1 for members in groups.values()]
+    later = [p for p in pairs if not p["same_timestamp"]]
+    real = [p for p in pairs if is_real_resend(p)]
     return {
         "run_at_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "similarity_threshold": SIMILARITY_THRESHOLD,
@@ -211,19 +291,24 @@ def build_stats(emails, blocks, candidate_blocks, pairs, counters, rows_flagged,
         "emails_flagged": len(pairs),
         "average_group_size": round(sum(sizes) / len(sizes), 2) if sizes else 0,
         "largest_group_size": max(sizes, default=0),
-        "flagged_same_timestamp_as_original": sum(1 for p in pairs if p[4] == p[5]),
-        "flagged_later_than_original": sum(1 for p in pairs if p[4] != p[5]),
+        "flagged_same_timestamp_as_original": len(pairs) - len(later),
+        "flagged_later_than_original": len(later),
+        "flagged_later_likely_export_copy": sum(1 for p in later if p["likely_export_copy"]),
+        "flagged_real_resends": len(real),
         "score_bands": {
             "100": sum(1 for s in scores if s == 100),
             "95_to_under_100": sum(1 for s in scores if 95 <= s < 100),
             "90_to_under_95": sum(1 for s in scores if s < 95),
         },
         "lowest_score": min(scores, default=None),
+        "recipient_overlap_bands_all_flagged": overlap_bands([p["recipient_overlap"] for p in pairs]),
+        "recipient_overlap_bands_real_resends": overlap_bands([p["recipient_overlap"] for p in real]),
         "body_gate_rejected_comparisons": counters["body_gate_rejections"],
         "rows_flagged_this_run": rows_flagged,
         "notified_rows_conflicts": conflicts,
         "task4_targets": len(targets),
-        "task4_targets_later_than_original": sum(1 for t in targets if not t[3]),
+        "task4_targets_later_than_original": sum(1 for t in targets if not t["same_timestamp"]),
+        "task4_targets_real_resends": sum(1 for t in targets if is_real_resend(t)),
     }
 
 
@@ -232,14 +317,22 @@ def print_stats(stats):
     print(f"Duplicate groups: {stats['duplicate_groups']}   emails flagged: {stats['emails_flagged']}   "
           f"average group size: {stats['average_group_size']}   largest group: {stats['largest_group_size']}")
     print(f"  same timestamp as original (folder copies): {stats['flagged_same_timestamp_as_original']}   "
-          f"later than original (re-sends): {stats['flagged_later_than_original']}")
+          f"later than original: {stats['flagged_later_than_original']}")
+    print(f"    of the later ones: likely export copies (D45) {stats['flagged_later_likely_export_copy']}   "
+          f"real re-sends {stats['flagged_real_resends']}")
     bands = stats["score_bands"]
     print(f"  scores: 100 = {bands['100']}   95-<100 = {bands['95_to_under_100']}   "
           f"90-<95 = {bands['90_to_under_95']}   lowest = {stats['lowest_score']}")
+    for label, key in (("all flagged", "recipient_overlap_bands_all_flagged"),
+                       ("real re-sends", "recipient_overlap_bands_real_resends")):
+        b = stats[key]
+        print(f"  recipient overlap (D46), {label}: 100 = {b['100']}   50-<100 = {b['50_to_under_100']}   "
+              f">0-<50 = {b['over_0_to_under_50']}   0 = {b['0']}")
     print(f"  body gate (D44) rejected comparisons: {stats['body_gate_rejected_comparisons']}")
     print(f"  notified rows in conflict (kept unchanged): {len(stats['notified_rows_conflicts'])}")
     print(f"Task 4 targets (latest duplicate per group): {stats['task4_targets']}   "
-          f"of which later than their original: {stats['task4_targets_later_than_original']}")
+          f"later than original: {stats['task4_targets_later_than_original']}   "
+          f"real re-sends: {stats['task4_targets_real_resends']}")
 
 
 def take_sample(items, limit):

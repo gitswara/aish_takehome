@@ -52,7 +52,9 @@ output/enron.db ──► src/detect_duplicates.py
                      3. each block oldest first by (date, source_file)
                      4. each email vs each group's ORIGINAL: full text ≥ 90 AND body gate → join, else new group
                      5. write flags (1 transaction; notified rows never changed)
-                     6. read flagged pairs back FROM THE DB ──► duplicates_report.csv (repo root)
+                     6. read flagged pairs back FROM THE DB, add same_timestamp (D39),
+                        likely_export_copy (D45), recipient_overlap (D46)
+                                                            ──► duplicates_report.csv (repo root)
                                                             └─► output/dedup_stats.json (+ printed)
 ```
 

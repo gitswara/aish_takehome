@@ -112,10 +112,18 @@ WHERE message_id = '<7474422.1075852683329.JavaMail.evans@thyme>';
 -- ---------------------------------------------------------------------------
 -- 6. Duplicate groups (only returns rows after Task 3 has run).
 --    Each original with how many emails were flagged as its duplicates.
--- Expected output: no rows until Task 3 has run (before Task 3, every
--- is_duplicate = 0). After Task 3: up to 10 originals with the most flagged
--- duplicates, their lowest similarity score (>= 90) and latest duplicate date.
--- (Real output to be recorded here after Task 3.)
+-- Expected output: no rows before Task 3 runs (every is_duplicate = 0).
+-- After Task 3 (python src/detect_duplicates.py): 4,558 groups in total;
+-- this query shows the 10 largest:
+--   david.delainey@enron.com    Approval for reviewer              67 dups  min 91.2
+--   svarga@kudlow.com           New Kudlow Commentary              28 dups  min 99.4
+--   kay.chapman@enron.com       Staff Meeting                      15 dups  min 90.1
+--   rosalee.fleming@enron.com   Thank you for the Charitygift      15 dups  min 100.0
+--   perfmgmt@enron.com          Year End 2000 Performance Feedback 14 dups  min 92.3
+--   katherine.brown@enron.com   Executive Committee List - Update  13 dups  min 100.0
+--   ... (4 more). Every min_similarity is >= 90 (the threshold, D41).
+-- Note: the top group is a known template false positive (the same review
+-- form about different employees; see DECISIONS.md, Task 3 step 6).
 -- ---------------------------------------------------------------------------
 SELECT o.message_id AS original_message_id, o.from_address, SUBSTR(o.subject, 1, 40) AS subject,
        o.date AS original_date,

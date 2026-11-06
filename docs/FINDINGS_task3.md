@@ -247,3 +247,159 @@ First report row (the "Education Survey" email from Q3 of `sample_queries.sql`):
 **Unexpected / not sure:**
 1. **Only 389 of the 4,558 Task 4 targets are later than their original.** In the other 4,169 groups the "latest" is a same-timestamp folder copy, chosen by the `source_file` tie-break. That matters for Task 4: about 4,558 notices vs Gmail's ~500/day.
 2. **`--limit` changed meaning** (now print-only), so D42 is amended.
+
+---
+
+## Step 6: Spot-check (6 groups, re-scored from the raw files)
+
+**Method:** I picked one group of each kind from the DB. For every flagged row shown, I **re-parsed the raw email file** with the Task 1 parser (`parse_file()`) and re-scored it, re-checking the sender and normalised subject too. This is independent of the text stored in the DB. **11 of 11 recomputed scores match** the stored scores (0 mismatches).
+
+**IDs for you to check yourself** (paths relative to `data/`):
+
+| Case | Original (Message-ID / file) | A flagged duplicate (Message-ID / file) | Score |
+| --- | --- | --- | --- |
+| A. folder copy | `<12045714.1075840076681.JavaMail.evans@thyme>` `maildir/skilling-j/all_documents/359.` | `<23185873.1075840090105.JavaMail.evans@thyme>` `maildir/skilling-j/discussion_threads/278.` (same timestamp) | 100 |
+| B. later re-send | `<15049794.1075845546760.JavaMail.evans@thyme>` `maildir/lavorato-j/all_documents/765.` (2001-01-19) | `<2243995.1075840153442.JavaMail.evans@thyme>` `maildir/skilling-j/inbox/131.` (2001-05-01) | 100 |
+| C. +12 h "later" | `<16676048.1075857747429.JavaMail.evans@thyme>` `maildir/lavorato-j/_sent_mail/81.` (20:11) | `<6101672.1075857685823.JavaMail.evans@thyme>` `maildir/lavorato-j/sent_items/153.` (08:11 next day) | 100 |
+| D. template false positive | `<14637738.1075854482286.JavaMail.evans@thyme>` `maildir/delainey-d/_sent_mail/138.` (Mays) | `<12846475.1075854481614.JavaMail.evans@thyme>` `maildir/delainey-d/_sent_mail/108.` (Deffner) | 91.19 |
+| E. near match | `<17307435.1075854493664.JavaMail.evans@thyme>` `maildir/delainey-d/_sent_mail/621.` (June 2 reminder) | `<27164541.1075854491389.JavaMail.evans@thyme>` `maildir/delainey-d/_sent_mail/528.` (June 30 "NO STAFF MEETING") | 90.08 |
+| F. blank subject | `<27566010.1075854555665.JavaMail.evans@thyme>` `maildir/delainey-d/_sent_mail/854.` ("Chris, …") | `<3910612.1075854555595.JavaMail.evans@thyme>` `maildir/delainey-d/_sent_mail/851.` ("Barry …") | 91.01 |
+
+**What each shows:**
+- **A:** a real folder copy: 3 copies, same timestamp, identical text. Correct.
+- **B:** a genuine re-send: the same OWA notice sent again 3½ months later. Correct.
+- **C:** the same 1-word reply ("Thanks") in `_sent_mail` (Notes) and `sent_items` (Outlook), **exactly 12 h apart**. Very likely one email with a shifted export clock, not a re-send → **D45**.
+- **D:** **template false positive.** A word diff shows the only differences are the date and the employee: `MAYS,WAYNE E` → `DEFFNER,JOSEPH M`. The same review-approval form about two different people. Correct under the spec's 90% rule, wrong in meaning. Documented.
+- **E:** **template false positive:** a "NO STAFF MEETING TODAY… HAPPY HOLIDAY" notice matched the regular Friday-meeting reminder (90.08).
+- **F:** **near-template:** the same request sent to two different people (Chris vs Barry) six minutes apart. The spec's rule ignores recipients.
+
+**New finding → D45 (open):** among the 696 "later" duplicates, **254** are 100% matches exactly a whole number of hours later: +12 h 212 · +10 h 34 · +9 h 4 · other 4, all on `:00` seconds. Almost all pair Lotus Notes folders (`_sent_mail`, `all_documents`) with Outlook folders (`sent_items`, `inbox`) of the same person (Lavorato 203, Skilling 36). That points to a clock shift between the two exports, not a re-send.
+
+### Full spot-check tables
+
+
+### A. Folder-copy group (same timestamp)
+
+From `jan_levine@travisintl.com` · subject `'Education Survey'` · group size 3
+
+| Role | Message-ID | source_file | date (UTC) | stored score | recomputed from raw file | body gate |
+| --- | --- | --- | --- | --- | --- | --- |
+| original | `<12045714.1075840076681.JavaMail.evans@thyme>` | `maildir/skilling-j/all_documents/359.` | 1998-01-06T01:32:00+00:00 | | | |
+| duplicate | `<23185873.1075840090105.JavaMail.evans@thyme>` | `maildir/skilling-j/discussion_threads/278.` | 1998-01-06T01:32:00+00:00 | 100.00 | 100.00 ✔ | 100.0 ≥ 90 |
+| duplicate | `<32961500.1075840098988.JavaMail.evans@thyme>` | `maildir/skilling-j/notes_inbox/118.` | 1998-01-06T01:32:00+00:00 | 100.00 | 100.00 ✔ | 100.0 ≥ 90 |
+
+Original body: _I told you I'd be back! Hopefully, the ease of today's electronic input will help facilitate your response to our YPO Education Survey. Therefore, please comple_
+
+Lowest-scoring shown duplicate (100.00) body: _I told you I'd be back! Hopefully, the ease of today's electronic input will help facilitate your response to our YPO Education Survey. Therefore, please comple_
+
+### B. Later re-send (genuine: Jan -> May)
+
+From `outlook.team@enron.com` · subject `'4-URGENT - OWA Please print this now.'` · group size 2
+
+| Role | Message-ID | source_file | date (UTC) | stored score | recomputed from raw file | body gate |
+| --- | --- | --- | --- | --- | --- | --- |
+| original | `<15049794.1075845546760.JavaMail.evans@thyme>` | `maildir/lavorato-j/all_documents/765.` | 2001-01-19T10:35:00+00:00 | | | |
+| duplicate | `<2243995.1075840153442.JavaMail.evans@thyme>` | `maildir/skilling-j/inbox/131.` | 2001-05-01T00:11:00+00:00 | 100.00 | 100.00 ✔ | 100.0 ≥ 90 |
+
+Original body: _Current Notes User: REASONS FOR USING OUTLOOK WEB ACCESS (OWA) 1. Once your mailbox has been migrated from Notes to Outlook, the Outlook client will be configur_
+
+Lowest-scoring shown duplicate (100.00) body: _Current Notes User: REASONS FOR USING OUTLOOK WEB ACCESS (OWA) 1. Once your mailbox has been migrated from Notes to Outlook, the Outlook client will be configur_
+
+### C. "Later" but exactly +12 h (export artifact?)
+
+From `john.lavorato@enron.com` · subject `'Re: Canada Positions by Trader'` · group size 2
+
+| Role | Message-ID | source_file | date (UTC) | stored score | recomputed from raw file | body gate |
+| --- | --- | --- | --- | --- | --- | --- |
+| original | `<16676048.1075857747429.JavaMail.evans@thyme>` | `maildir/lavorato-j/_sent_mail/81.` | 2000-11-25T20:11:00+00:00 | | | |
+| duplicate | `<6101672.1075857685823.JavaMail.evans@thyme>` | `maildir/lavorato-j/sent_items/153.` | 2000-11-26T08:11:00+00:00 | 100.00 | 100.00 ✔ | 100.0 ≥ 90 |
+
+Original body: _Thanks_
+
+Lowest-scoring shown duplicate (100.00) body: _Thanks_
+
+### D. Template false positive: Delainey "Approval for reviewer"
+
+From `david.delainey@enron.com` · subject `'Approval for reviewer'` · group size 68
+
+| Role | Message-ID | source_file | date (UTC) | stored score | recomputed from raw file | body gate |
+| --- | --- | --- | --- | --- | --- | --- |
+| original | `<14637738.1075854482286.JavaMail.evans@thyme>` | `maildir/delainey-d/_sent_mail/138.` | 2000-11-06T18:45:00+00:00 | | | |
+| duplicate | `<11889144.1075854432495.JavaMail.evans@thyme>` | `maildir/delainey-d/all_documents/167.` | 2000-11-06T18:45:00+00:00 | 100.00 | 100.00 ✔ | both empty → pass |
+| duplicate | `<12846475.1075854481614.JavaMail.evans@thyme>` | `maildir/delainey-d/_sent_mail/108.` | 2000-11-13T11:50:00+00:00 | 91.19 | 91.19 ✔ | both empty → pass |
+| duplicate | `<33313565.1075854431791.JavaMail.evans@thyme>` | `maildir/delainey-d/all_documents/136.` | 2000-11-13T11:50:00+00:00 | 91.19 | 91.19 ✔ | both empty → pass |
+| … | 64 more duplicates | | | | | |
+
+Original body: __
+
+Lowest-scoring shown duplicate (91.19) body: __
+
+### E. Near match 90-95: "Staff Meeting"
+
+From `kay.chapman@enron.com` · subject `'Staff Meeting'` · group size 16
+
+| Role | Message-ID | source_file | date (UTC) | stored score | recomputed from raw file | body gate |
+| --- | --- | --- | --- | --- | --- | --- |
+| original | `<17307435.1075854493664.JavaMail.evans@thyme>` | `maildir/delainey-d/_sent_mail/621.` | 2000-06-01T16:46:00+00:00 | | | |
+| duplicate | `<27164541.1075854491389.JavaMail.evans@thyme>` | `maildir/delainey-d/_sent_mail/528.` | 2000-06-30T11:19:00+00:00 | 90.08 | 90.08 ✔ | 90.1 ≥ 90 |
+| … | 14 more duplicates | | | | | |
+
+Original body: _This is a reminder !!!!! There will be a Friday Meeting, June 2, 2000. Date: Friday June 2, 2000 Time: 2:30 pm - 4:30 pm Location: 30C1 Topic: Combined Staff an_
+
+Lowest-scoring shown duplicate (90.08) body: _NO STAFF MEETING TODAY, JUNE 30, 2000 HAPPY HOLIDAY This is a reminder !!!!! There will NOT be a Friday Meeting June 30, 2000. Date: Friday June 30, 2000 Time: _
+
+### F. Blank-subject group (Delainey)
+
+From `david.delainey@enron.com` · subject `''` · group size 12
+
+| Role | Message-ID | source_file | date (UTC) | stored score | recomputed from raw file | body gate |
+| --- | --- | --- | --- | --- | --- | --- |
+| original | `<27566010.1075854555665.JavaMail.evans@thyme>` | `maildir/delainey-d/_sent_mail/854.` | 2000-12-20T11:29:00+00:00 | | | |
+| duplicate | `<18393389.1075854499244.JavaMail.evans@thyme>` | `maildir/delainey-d/all_documents/890.` | 2000-12-20T11:29:00+00:00 | 100.00 | 100.00 ✔ | 100.0 ≥ 90 |
+| duplicate | `<3910612.1075854555595.JavaMail.evans@thyme>` | `maildir/delainey-d/_sent_mail/851.` | 2000-12-20T11:35:00+00:00 | 91.01 | 91.01 ✔ | 91.0 ≥ 90 |
+| duplicate | `<2270895.1075854499178.JavaMail.evans@thyme>` | `maildir/delainey-d/all_documents/887.` | 2000-12-20T11:35:00+00:00 | 91.01 | 91.01 ✔ | 91.0 ≥ 90 |
+| … | 8 more duplicates | | | | | |
+
+Original body: _Chris, I need your 2000 accomplishments and Enron resume/deal anthology before Friday. Thxs Dave_
+
+Lowest-scoring shown duplicate (91.01) body: _Barry need your 2000 accomplishment and Enron resume/deal anthology before Friday Thanks Dave_
+
+---
+
+## Step 7: Query 6 real output (sample_queries.sql)
+
+Query 6 now has its real output in its "Expected output" comment: **4,558 groups** in total; the 10 largest are listed. Top: Delainey "Approval for reviewer" (67 duplicates, min 91.2: the template false positive above), `svarga@kudlow.com` "New Kudlow Commentary" (28, min 99.4), Kay Chapman "Staff Meeting" (15, min 90.1). Every `min_similarity` is ≥ 90. Task 2 step 6 is ticked.
+
+---
+
+## D45 + D46 applied, and step 8 tests
+
+**D45 (`likely_export_copy`):** score 100, plus an exact whole-hour gap of 0–24 h, plus one Notes copy (`\Notes Folders\` in X-Folder) and one Outlook copy. **254** later duplicates (212 at +12 h, 34 at +10 h). 0 flags changed.
+
+**D46 (`recipient_overlap`):** Jaccard of To + Cc (Bcc ignored, D7), 0–100.
+
+| | Value |
+| --- | --- |
+| Later than original | 696 |
+| … likely export copies | **254** |
+| … **real re-sends** | **442** |
+| Task 4 targets (latest per group) / later / real re-sends | 4,558 / 389 / **141** |
+| Overlap, all flagged: 100 / 50–<100 / >0–<50 / 0 | 10,404 / 74 / 29 / 168 |
+| Overlap, real re-sends: 100 / 50–<100 / >0–<50 / 0 | 246 / 67 / 20 / 109 |
+| **Case B overlap** (OWA notice, 15 vs 88 recipients) | **0.0** ✔ (matches the manual check) |
+| Case C (+12 h "Canada Positions") | `likely_export_copy = True`, overlap 100 |
+
+`duplicates_report.csv` now has 10 columns: the 7 spec columns + `same_timestamp`, `likely_export_copy`, `recipient_overlap`.
+
+**Step 8:** `tests/test_detect_duplicates.py`, 8 tests. `pytest -q` → **23 passed** (all suites).
+
+| Rule broken in memory | Caught? |
+| --- | --- |
+| D38: compare with the group's last member (chaining) | ✔ |
+| D39: sort by date only (no tie-break) | ✔ |
+| D40: clear and rewrite notified rows | ✔ |
+| D45: drop the Notes/Outlook condition | ✔ |
+| D44: both-empty → fail / one-empty → pass / no body gate | ✔ / ✔ / ✔ |
+| D44: replace the explicit rule with rapidfuzz's own empty-string behaviour | ✘, **same outcomes**: rapidfuzz 3.14.6 gives `('','') = 100`, `('x','') = 0` |
+
+The last row isn't a test gap. The explicit rule and the library currently agree, and the tests check outcomes. The explicit code protects against a future library change.

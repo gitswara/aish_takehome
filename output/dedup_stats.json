@@ -1,5 +1,5 @@
 {
-  "run_at_utc": "2026-11-06T02:03:28+00:00",
+  "run_at_utc": "2026-11-06T02:15:53+00:00",
   "similarity_threshold": 90,
   "scorer": "rapidfuzz fuzz.ratio on full text (body + forwarded + quoted) + D44 body gate",
   "emails": 20339,
@@ -11,15 +11,30 @@
   "largest_group_size": 68,
   "flagged_same_timestamp_as_original": 9979,
   "flagged_later_than_original": 696,
+  "flagged_later_likely_export_copy": 254,
+  "flagged_real_resends": 442,
   "score_bands": {
     "100": 10293,
     "95_to_under_100": 231,
     "90_to_under_95": 151
   },
   "lowest_score": 90.08,
+  "recipient_overlap_bands_all_flagged": {
+    "100": 10404,
+    "50_to_under_100": 74,
+    "over_0_to_under_50": 29,
+    "0": 168
+  },
+  "recipient_overlap_bands_real_resends": {
+    "100": 246,
+    "50_to_under_100": 67,
+    "over_0_to_under_50": 20,
+    "0": 109
+  },
   "body_gate_rejected_comparisons": 253,
   "rows_flagged_this_run": 10675,
   "notified_rows_conflicts": [],
   "task4_targets": 4558,
-  "task4_targets_later_than_original": 389
+  "task4_targets_later_than_original": 389,
+  "task4_targets_real_resends": 141
 }

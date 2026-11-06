@@ -545,3 +545,68 @@ Findings in `docs/FINDINGS_task3.md`. I accepted all the recommendations for D35
   - integrity and foreign-key checks clean
 - **Re-run:** flags (hash of every row's Task 3 columns) and `duplicates_report.csv` are **byte-identical** on a second run.
 - `duplicates_report.csv`: 10,675 rows + header; `same_timestamp` True 9,979 / False 696.
+
+## Task 3, steps 6–7 notes (spot-check, query 6)
+
+- **Spot-check:** 6 groups. Every flagged row shown was **re-scored from the raw email file** with the Task 1 parser (`parse_file()`), not from the DB text. Sender and normalised subject were re-checked too. **11 of 11 scores match** the stored ones. Tables are in `docs/FINDINGS_task3.md`.
+  - A. folder copies (same timestamp): "Education Survey", 3 copies, 100 ✔
+  - B. genuine later re-send: outlook.team "4-URGENT - OWA Please print this now.", Jan 19 → May 1 2001, 100 ✔
+  - C. a "later" copy exactly **+12 h** after its original: Lavorato "Re: Canada Positions by Trader", `_sent_mail` → `sent_items`. See D45.
+  - D. **template false positive (confirmed):** Delainey "Approval for reviewer", 68 emails. A word diff of original vs a 91.19 member shows the only changes are the date and the employee (`MAYS,WAYNE E` → `DEFFNER,JOSEPH M`). The same review form about different people. Flagged per the spec's 90% rule; documented, not changed.
+  - E. near match 90.08: Kay Chapman "Staff Meeting". The June 30 "NO STAFF MEETING TODAY… HAPPY HOLIDAY" notice matched the June 2 meeting reminder (a reminder template), so it's also a template false positive.
+  - F. blank subject: Delainey "Chris, I need your 2000 accomplishments…" vs "Barry need your 2000 accomplishment…" (91.01), the same request to **different people**. The spec's rule doesn't look at recipients.
+- **Query 6** filled with real output: 4,558 groups; the largest is "Approval for reviewer" (67 duplicates, min 91.2).
+
+## D45. "Later" duplicates that are exact whole-hour shifts (export clock errors)
+
+- **Finding (step 6):** of the **696** flagged emails that are later than their original, **254** have a 100% full-text match and a gap of an **exact whole number of hours ≤ 14**: +12 h: 212 · +10 h: 34 · +9 h: 4 · others: 4. All have `:00` seconds. Folder pairs:
+  - Lavorato `_sent_mail` → `sent_items`: 109
+  - Lavorato `all_documents` → `sent_items`: 94
+  - Skilling `all_documents` → `inbox`: 26
+  - Skilling `all_documents` → `deleted_items`: 10
+- **Interpretation:** the same email exported twice, once from Lotus Notes (`.nsf` folders) and once from Outlook (`.pst` folders), with one export's clock shifted (AM/PM or time zone). Probably not a re-send. Example: "Re: Canada Positions by Trader", body "Thanks", 20:11 → 08:11 the next day.
+- **Why it matters:** the spec says the latest email "is likely a re-send". For these 254, the "later" one is just the other export's copy. This also affects Task 4's 389 "real re-send" targets.
+- **Options:** (a) keep the dates as given and follow the spec (no change) · (b) treat these as folder copies in the re-send counts, flags unchanged · (c) (a) plus an extra report column `likely_export_copy` and a stats line.
+- **I chose (c).** Flags don't change. The report gets a `likely_export_copy` column, and the stats count real re-sends separately.
+- **Rule (exact):** `likely_export_copy = true` when **all** of these hold:
+  1. `similarity_score` is **100**
+  2. the duplicate is later than its original by an **exact whole number of hours, more than 0 and at most 24** (`EXPORT_COPY_MAX_HOURS = 24` in the config)
+  3. **one copy is in a Lotus Notes folder and the other in an Outlook folder.** Notes vs Outlook is judged per email from its `X-Folder`: Notes exports contain `\Notes Folders\` (e.g. `\John_Lavorato_Dec2000\Notes Folders\'sent mail`), Outlook `.pst` exports don't (e.g. `\jlavora\Sent Items`). It's judged per email, not per folder name, because some folders (`personal`, `mark`, `jean`, …) hold both kinds.
+- **Evidence:**
+  - Counts: **254** later duplicates match the rule: **212 at +12 h**, **34 at +10 h**, 4 at +9 h, and 1 each at +4, +5, +13 and +14 h. All have `:00` seconds.
+  - Folder pairs: Lavorato `_sent_mail`/`all_documents` (Notes) → `sent_items` (Outlook): 203; Skilling `all_documents` → `inbox`/`deleted_items`: 36.
+  - Example: "Re: Canada Positions by Trader", body "Thanks", Notes copy 20:11 vs Outlook copy 08:11 the next day.
+  - Widening the gap limit from 14 h to 24 h added no cases (still 254).
+- **Rows affected:** 0 flags changed. Of the 696 later duplicates, **254** are likely export copies, leaving **442 real re-sends**. Task 4 targets (the latest per group): 4,558, of which 389 are later than their original and **141** are real re-sends.
+
+## D46. Recipient overlap column
+
+- **Context:** the spec's duplicate rule ignores recipients. In case B (the OWA notice, which I checked against the raw files myself), the original went to 15 people and the "duplicate" to 88, with none in common: a mass announcement sent in batches, not an accidental re-send.
+- **I chose:** add `recipient_overlap` to `duplicates_report.csv`. Flags don't change (same approach as `same_timestamp` and `likely_export_copy`).
+- **Definition:** share of **To + Cc** recipients the duplicate and its original have in common, 0–100: |A ∩ B| / |A ∪ B| × 100 (Jaccard), rounded to 1 decimal. Bcc is ignored because it copies Cc (D7). Both empty → 100 (can't happen: To is mandatory, D4).
+- **Distribution** (stats):
+
+  | Band | All 10,675 flagged | The 442 real re-sends |
+  | --- | --- | --- |
+  | 100 | 10,404 | 246 |
+  | 50–<100 | 74 | 67 |
+  | >0–<50 | 29 | 20 |
+  | 0 | 168 | 109 |
+
+- **Sanity check, case B:** `recipient_overlap = 0.0` (15 vs 88 To recipients, disjoint). Matches my manual check.
+- **Rows affected:** 0 flags changed; one new report column.
+
+## Task 3, step 8 notes (tests)
+
+- `tests/test_detect_duplicates.py`, 8 tests:
+  - subject normalisation (D35)
+  - different replies over the same quoted thread → not duplicates (D44)
+  - empty-body gate rules (D44)
+  - anchor grouping: chain A≈B≈C with A vs C < 90 → C not in A's group (D38)
+  - tie-break on identical timestamps, either input order (D39)
+  - a notified row keeps its flags on a re-run that finds nothing, and is reported as a conflict (D40)
+  - `likely_export_copy` (+12 h Notes/Outlook → true; 3 days, same kind, 99.5 or 12.5 h → false) (D45)
+  - `recipient_overlap` (identical 100, disjoint 0, partial 33.3) (D46)
+- `pytest -q`: **23 passed** (8 parser + 7 DB + 8 dedup).
+- **Mutation check:** chaining instead of anchoring → caught; no tie-break → caught; notified rows wiped → caught; no Notes/Outlook condition → caught. For D44: both-empty → fail, one-empty → pass, and no body gate → all caught.
+- **One mutation was not caught, and why that's fine:** replacing the explicit D44 empty-body rule with rapidfuzz's built-in behaviour. In rapidfuzz 3.14.6, `ratio('', '') = 100` and `ratio('text', '') = 0`, which happens to be exactly our rule, so the outcomes are identical. The tests check outcomes. The explicit rule protects us if a library update or a different scorer changed how empty strings score; the tests would then fail.
