@@ -13,8 +13,11 @@ data/maildir/{lay-k,skilling-j,whalley-l,lavorato-j,delainey-d}/**   (read-only,
         ├──► output/parsed_emails.jsonl      one parsed email per line (input to Task 2); 51 MB, git-ignored
         ├──► output/sample_parsed_emails.jsonl  18-record sample, committed (D23)
         ├──► error_log.txt                   path <TAB> reason, one failed file per line
-        └──► output/extraction_stats.json    totals, failures by reason, completeness % per field
+        └──► output/extraction_stats.json    totals, failures by reason, split markers, completeness % per field
+                                             (over all processed files AND over parsed OK)
 ```
+
+**Sample runs:** `python src/parse_emails.py --limit 200` writes its three outputs to `output/sample_run/` (git-ignored, D24). It never touches `error_log.txt`, `output/parsed_emails.jsonl` or `output/extraction_stats.json`.
 
 **Regenerating the JSONL:** `output/parsed_emails.jsonl` is git-ignored because it's 51 MB (D23). To rebuild it, run `python src/parse_emails.py` from the project root with the `.venv` active and the Enron data in `data/maildir/`. It takes about 11 seconds. A full run (no `--limit`) also refreshes the committed sample.
 

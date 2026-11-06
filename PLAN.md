@@ -18,8 +18,8 @@ Status: `[ ]` todo · `[x]` done. **M** = must-have, **N** = nice-to-have (cut f
 5. [x] **M** `has_attachment` from filename patterns (D10). Done: 1,336 true with the D21 default (body + forwarded). Open: D21 scope.
 6. [x] **M** Mandatory-field check → `error_log.txt` (`path<TAB>reason`). Done: 20,339 parsed / 1,323 failed, as predicted. D22 decided (b): fail only if all text fields are empty.
 7. [x] **M** Write `output/parsed_emails.jsonl`, one email per line (D12). Done: 20,339 records, 19 fields (+ `headings` in step 10), 51 MB, git-ignored. A committed 18-record sample is in `output/sample_parsed_emails.jsonl` (D23).
-8. [ ] **M** Stats: files found, parsed, failed (by reason), and completeness % per field. Printed and saved to `output/extraction_stats.json`.
-9. [ ] **M** Run on all 21,662 files, check the counts against DECISIONS.md, and spot-check about 10 records by hand. Fill in the *(at run)* counts.
+8. [x] **M** Stats: files found, parsed, failed (by reason), and completeness % per field. Printed and saved to `output/extraction_stats.json`. Done: completeness is reported over all processed files and over parsed OK; subject shown as header present (100%) and non-blank (92.8%).
+9. [x] **M** Run on all 21,662 files, check the counts against DECISIONS.md, and spot-check about 10 records by hand. Fill in the *(at run)* counts. Done: 17/17 count checks ✔, no text lost in 20,339 records, 10/10 spot-checks ✔.
 10. [ ] **N** `headings`: ALL-CAPS and numbered section lines, primary body only (D11). *Not cut: done after 6–9 (24-hour take-home).*
 11. [ ] **N** pytest: 5–8 small cases on parser edge cases: nested forward, D17 Notes block, D19 single `>` not a quote, missing To → failure, placeholder date → failure. *Not cut: done after 6–9.*
 
@@ -30,4 +30,4 @@ After each step: update PLAN.md, DECISIONS.md (counts) and ARCHITECTURE.md, and 
 - Task 2: SQLite schema + loader from JSONL + sample queries
 - Task 3: Duplicate detection (similarity on the full text, D9) + `duplicates_report.csv`
 - Task 4: Draft `.eml` replies + live send via MCP, to my Gmail only
-- README.md and AI_USAGE.md, written at the end. README must say: `output/parsed_emails.jsonl` is git-ignored (D23); regenerate it with `python src/parse_emails.py`; a committed 18-record sample is in `output/sample_parsed_emails.jsonl`.
+- README.md and AI_USAGE.md, written at the end. README must say: `output/parsed_emails.jsonl` is git-ignored (D23); regenerate it with `python src/parse_emails.py`; a committed 18-record sample is in `output/sample_parsed_emails.jsonl`. Quote the **parsed** attachment count: **1,149** of 20,339 parsed emails have `has_attachment = true` (1,336 across all processed files). `--limit N` writes to `output/sample_run/` (D24).

@@ -70,6 +70,7 @@ Counts come from a scan of all 21,662 files before I wrote the parser. Counts ma
 - **Context:** in all 5,594 emails that have `Bcc`, it exactly equals `Cc`. This is a known flaw in how the Enron data was converted, not real blind copies.
 - **Options:** (a) store Bcc as given · (b) clear Bcc when it equals Cc.
 - **I chose (a).** I stay faithful to the source and document the flaw here, so anyone querying Bcc knows to treat it with care.
+- **Supporting evidence (I checked this myself in step 9):** in `lavorato-j/all_documents/8.`, the `Bcc:` header lists `david.redmond@enron.com`, but `X-bcc:` is **empty** while `X-cc:` names `David Redmond`. The X- headers come from the original mail system, and they show him as a normal Cc with no blind copy. So the `Bcc:` header is a copy made during conversion, not a real Bcc.
 - **Rows affected:** 5,594 (stored unchanged).
 
 ## D8. Splitting body / forwarded / quoted content
@@ -80,7 +81,7 @@ Counts come from a scan of all 21,662 files before I wrote the parser. Counts ma
   - `quoted_content` if it is a reply marker: `-----Original Message-----` (1,786), a Lotus Notes `Name on MM/DD/YYYY HH:MM AM/PM` header (2,765), or `>`-quoted lines (609)
 - **Amendment (step 4), approved by me after review:** Claude added a sixth marker, `notes_reply_from_line`: the mid-body Notes header `From:  Name @ X      MM/DD/YYYY HH:MM AM/PM`. It wasn't in my original list, so Claude flagged it in the step 4 report, and I approved it after review. It sends the rest to `quoted_content`, like the other reply markers. It is the first marker in 161 emails.
 - **Why not (c):** forwards nest 3–4 levels deep. Recursive parsing is much more code to explain, and the spec only asks to separate content "where possible".
-- **Rows affected:** marker counts overlap, so the exact split is *(at run)*.
+- **Rows affected (full run, first marker per email, after D19):** none 14,788 · notes_forward 3,353 · outlook_original 1,487 · notes_reply_one_line 1,153 · notes_reply_two_line 463 · gt_quoted 257 · notes_reply_from_line 161 (sum 21,662). Verified in step 9: no text is lost, because body + forwarded + quoted reproduces the original body in all 20,339 parsed records.
 
 ## D9. (For Task 3) Similarity compares the full original text
 
@@ -99,7 +100,7 @@ Counts come from a scan of all 21,662 files before I wrote the parser. Counts ma
 
 - **Options:** (a) ALL-CAPS lines plus numbered or lettered section lines (`A. 2000 Key Facts`, `1. FERC CONTINUES…`) · (b) also short lines ending in `:` · (c) skip.
 - **I chose (a), from the primary `body` only,** so the `To:` / `cc:` blocks inside forwards aren't picked up. This is a nice-to-have in PLAN.md.
-- **Rows affected:** *(at run)*. Over the whole text it was 1,765 (ALL-CAPS) and 1,019 (numbered); body-only will be lower.
+- **Rows affected:** *(filled in at step 10)*. Over the whole text it was 1,765 (ALL-CAPS) and 1,019 (numbered); body-only will be lower.
 
 ## D12. Parser output format
 
@@ -208,7 +209,7 @@ Counts come from a scan of all 21,662 files before I wrote the parser. Counts ma
   - (b) `body` + `forwarded_content`: **1,336** (+190)
   - (c) full text, including `quoted_content`: **1,870** (+534 more)
 - **I chose (b): `body` + `forwarded_content`.** A Lotus Notes forward carries the original's attachment along, so a filename in the forwarded part usually means the file is attached to *this* email. A reply's quoted part names the *original's* attachment, which Outlook and Notes replies normally don't re-send. Example: `lavorato-j/sent_items/501.` names `<< File: NW Update.xls >>` only in the quoted part.
-- **Rows affected:** 1,336 emails `has_attachment = true`. That's 190 more than (a) and 534 fewer than (c).
+- **Rows affected:** 1,336 emails `has_attachment = true` across all 21,662 processed files: 190 more than (a), 534 fewer than (c). Among the **20,339 parsed** emails it's **1,149** (187 of the 1,336 failed, mostly for missing `To`).
 
 ## Step 5 notes (has_attachment)
 
@@ -255,3 +256,28 @@ Counts come from a scan of all 21,662 files before I wrote the parser. Counts ma
   - It is deterministic: the same data always gives the same sample.
 - **Regenerate:** `python src/parse_emails.py` (documented in ARCHITECTURE.md; to go in README.md).
 - **Rows affected:** none (output files only).
+
+## Step 8 notes (stats)
+
+- `build_stats()` collects every number into one dict. `print_stats()` prints it, and the same dict is saved as `output/extraction_stats.json` (3.4 KB, committed).
+- **Completeness is reported twice:**
+  - over *all processed files*: shows the gaps in the raw data, e.g. `to_addresses` 94.0%
+  - over *parsed OK* only: what goes into the DB; mandatory fields are 100% by construction
+- In completeness, a blank subject `""` and `has_attachment = false` count as "not filled". So `subject` is 92.8% filled among parsed records even though every parsed record has the header (D5).
+- Checks: parsed + failed = processed (20,339 + 1,323 = 21,662); body-split markers sum to 21,662.
+- ~~A `--limit` run overwrites the real outputs~~: fixed by D24.
+- Subject is now shown two ways: `subject` (non-blank) 92.8% and `subject_header_present` 100% among parsed records.
+
+## D24. `--limit` runs write to `output/sample_run/`
+
+- **Risk:** a `--limit 200` run used to overwrite `error_log.txt`, `output/parsed_emails.jsonl` and `output/extraction_stats.json` with sample results. If I forgot the final full run, I could commit **sample results as the final output**: a 12-line error log instead of 1,323 failures.
+- **Options:** (a) keep overwriting and rely on remembering · (b) send `--limit` outputs to a separate folder.
+- **I chose (b).** `--limit` runs write `error_log.txt`, `parsed_emails.jsonl` and `extraction_stats.json` to `output/sample_run/` (`SAMPLE_RUN_DIR` in the config), which is git-ignored. The committed `output/sample_parsed_emails.jsonl` is still refreshed only on a full run.
+- **Verified:** the MD5 checksums of the four real output files were identical before and after a `--limit 200` run.
+- **Rows affected:** none (output locations only).
+
+## Step 9 notes (full-run verification)
+
+- **17 of 17 count checks match** the numbers in this file (table in FINDINGS step 9).
+- **No text lost:** for all 20,339 parsed records, `body + forwarded_content + quoted_content` equals the original decoded body, ignoring whitespace and minus the 12 stripped D17 blocks. 0 mismatches.
+- **10 spot-checked records**, chosen to cover plain, Cc, attachment, nested forward, Outlook reply, Notes reply, D17, quoted-printable, non-ASCII and blank subject. All 10 pass automated checks against the raw headers (Message-ID, From, To count, Cc count, Subject), and I read every field by eye. Paths are listed in FINDINGS step 9.

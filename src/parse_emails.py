@@ -10,7 +10,7 @@ import json
 import os
 import quopri
 import re
-from datetime import timezone
+from datetime import datetime, timezone
 from email.utils import getaddresses, parsedate_to_datetime
 
 from dateutil import parser as dateutil_parser
@@ -26,6 +26,9 @@ ERROR_LOG = os.path.join(PROJECT_ROOT, "error_log.txt")
 PARSED_JSONL = os.path.join(PROJECT_ROOT, "output", "parsed_emails.jsonl")   # D12 (git-ignored, D23)
 SAMPLE_JSONL = os.path.join(PROJECT_ROOT, "output", "sample_parsed_emails.jsonl")   # D23 (committed)
 SAMPLE_PER_CATEGORY = 3   # D23: records per category in the committed sample
+STATS_JSON = os.path.join(PROJECT_ROOT, "output", "extraction_stats.json")
+# D24: --limit runs write here instead, so sample results never overwrite the real outputs.
+SAMPLE_RUN_DIR = os.path.join(PROJECT_ROOT, "output", "sample_run")   # git-ignored
 TEXT_ENCODING = "cp1252"   # Windows-1252: how non-ASCII bytes are read (never fails with errors="replace")
 GARBLED_APOSTROPHE = "\x01,"   # D16: replaced with "'"
 
@@ -364,6 +367,76 @@ def pick_sample(records, per_category):
     return [record for category in sorted(picked) for record in picked[category]]
 
 
+# ---------------------------------------------------------------------------
+# Step 8: extraction statistics
+# ---------------------------------------------------------------------------
+def count_by(items):
+    """{'a': 2, 'b': 1} from ['a', 'b', 'a'], sorted by count (largest first)."""
+    counts = {}
+    for item in items:
+        counts[item] = counts.get(item, 0) + 1
+    return dict(sorted(counts.items(), key=lambda pair: -pair[1]))
+
+
+def completeness(records, fields):
+    """For each field: how many records have a non-empty value, and the %.
+
+    "subject" counts non-blank subjects. "subject_header_present" is added
+    right after it, because a blank subject is valid (D5) but not "filled".
+    """
+    def entry(filled):
+        percent = round(100 * filled / len(records), 1) if records else 0.0
+        return {"filled": filled, "percent": percent}
+
+    result = {}
+    for field in fields:
+        result[field] = entry(sum(1 for r in records if r.get(field) not in (None, "", [], False)))
+        if field == "subject":
+            result["subject_header_present"] = entry(sum(1 for r in records if r["subject"] is not None))
+    return result
+
+
+def build_stats(all_paths, paths, all_records, records, failures,
+                split_counts, notes_blocks_stripped, limit):
+    """Collect every number the spec asks for (plus split counts) in one dict."""
+    fields = list(all_records[0].keys()) if all_records else []
+    return {
+        "run_at_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "limit": limit,
+        "files_found": len(all_paths),
+        "files_found_by_mailbox": count_by(relative_source(p).split("/")[1] for p in all_paths),
+        "files_processed": len(paths),
+        "parsed_ok": len(records),
+        "failed": len(failures),
+        "failures_by_reason": count_by(reason for _source, reason in failures),
+        "body_split_by_first_marker": dict(sorted(split_counts.items(), key=lambda pair: -pair[1])),
+        "leading_notes_blocks_stripped": notes_blocks_stripped,
+        "field_completeness_all_processed": completeness(all_records, fields),
+        "field_completeness_parsed_ok": completeness(records, fields),
+    }
+
+
+def print_stats(stats):
+    """Print the stats dict as a readable report."""
+    print(f"Files found: {stats['files_found']}   processed: {stats['files_processed']}"
+          + (f"   (--limit {stats['limit']})" if stats["limit"] else ""))
+    for mailbox, count in stats["files_found_by_mailbox"].items():
+        print(f"  {mailbox:12s} {count:6d}")
+    print(f"Parsed OK: {stats['parsed_ok']}   Failed: {stats['failed']}")
+    for reason, count in stats["failures_by_reason"].items():
+        print(f"  {count:6d}  {reason}")
+    print("Body split, by first marker found:")
+    for marker, count in stats["body_split_by_first_marker"].items():
+        print(f"  {marker:22s} {count:6d}")
+    print(f"Leading Notes header blocks stripped (D17): {stats['leading_notes_blocks_stripped']}")
+    print("Field completeness:            all processed      parsed OK")
+    all_processed = stats["field_completeness_all_processed"]
+    parsed = stats["field_completeness_parsed_ok"]
+    for field in all_processed:
+        a, b = all_processed[field], parsed[field]
+        print(f"  {field:22s} {a['filled']:7d} {a['percent']:5.1f}%   {b['filled']:7d} {b['percent']:5.1f}%")
+
+
 def relative_source(path):
     """Path relative to data/, e.g. 'maildir/lay-k/inbox/45.' (spec: source_file)."""
     return os.path.relpath(path, DATA_ROOT)
@@ -378,14 +451,9 @@ def main():
     all_paths = discover_files(MAILDIR, MAILBOXES)
     paths = take_sample(all_paths, args.limit)
 
-    print(f"Files found: {len(all_paths)}")
-    for mailbox in MAILBOXES:
-        count = sum(1 for p in all_paths if relative_source(p).split(os.sep)[1] == mailbox)
-        print(f"  {mailbox:12s} {count}")
-    print(f"Files selected for this run: {len(paths)}")
-
     failures = []   # (source_file, reason) — written to error_log.txt in step 6
-    records = []
+    records = []        # parsed OK -> JSONL
+    all_records = []    # parsed OK + failed (for completeness over all files)
     split_counts = {}   # marker name -> how many emails were cut at that marker
     notes_blocks_stripped = 0
     for path in paths:
@@ -402,6 +470,7 @@ def main():
             split_counts[marker or "no_marker"] = split_counts.get(marker or "no_marker", 0) + 1
             notes_blocks_stripped += stripped
 
+            all_records.append(record)
             reasons = find_failure_reasons(record)
             if reasons:
                 failures.append((record["source_file"], "; ".join(reasons)))
@@ -410,31 +479,28 @@ def main():
         except Exception as e:   # never let one bad file stop the run
             failures.append((relative_source(path), f"unexpected error: {type(e).__name__}: {e}"))
 
-    write_error_log(failures, ERROR_LOG)
-    write_jsonl(records, PARSED_JSONL)
-    print(f"Wrote {len(records)} records to {os.path.relpath(PARSED_JSONL, PROJECT_ROOT)}")
+    # D24: a full run writes the real outputs; a --limit run writes to output/sample_run/.
+    if args.limit is None:
+        error_log, parsed_jsonl, stats_json = ERROR_LOG, PARSED_JSONL, STATS_JSON
+    else:
+        os.makedirs(SAMPLE_RUN_DIR, exist_ok=True)
+        error_log = os.path.join(SAMPLE_RUN_DIR, "error_log.txt")
+        parsed_jsonl = os.path.join(SAMPLE_RUN_DIR, "parsed_emails.jsonl")
+        stats_json = os.path.join(SAMPLE_RUN_DIR, "extraction_stats.json")
+    written = [parsed_jsonl, error_log, stats_json]
+
+    write_error_log(failures, error_log)
+    write_jsonl(records, parsed_jsonl)
     if args.limit is None:   # only refresh the committed sample on a full run
-        sample = pick_sample(records, SAMPLE_PER_CATEGORY)
-        write_jsonl(sample, SAMPLE_JSONL)
-        print(f"Wrote {len(sample)} records to {os.path.relpath(SAMPLE_JSONL, PROJECT_ROOT)}")
-    print(f"Parsed OK: {len(records)}   Failed: {len(failures)}   (failures written to {os.path.relpath(ERROR_LOG, PROJECT_ROOT)})")
-    reason_counts = {}
-    for _source, reason in failures:
-        reason_counts[reason] = reason_counts.get(reason, 0) + 1
-    for reason, count in sorted(reason_counts.items(), key=lambda item: -item[1]):
-        print(f"  {count:6d}  {reason}")
+        write_jsonl(pick_sample(records, SAMPLE_PER_CATEGORY), SAMPLE_JSONL)
+        written.append(SAMPLE_JSONL)
 
-    print("Body split, by first marker found:")
-    for marker, count in sorted(split_counts.items(), key=lambda item: -item[1]):
-        print(f"  {marker:22s} {count:6d}")
-    print(f"Leading Notes header blocks stripped (D17): {notes_blocks_stripped}")
-
-    # Quick completeness check (full stats come in step 8).
-    print("Field completeness (non-empty):")
-    for field in records[0] if records else []:
-        filled = sum(1 for r in records if r[field] not in (None, "", [], False))
-        print(f"  {field:18s} {filled:6d}  {100 * filled / len(records):5.1f}%")
-
+    stats = build_stats(all_paths, paths, all_records, records, failures,
+                        split_counts, notes_blocks_stripped, args.limit)
+    with open(stats_json, "w", encoding="utf-8") as f:
+        json.dump(stats, f, indent=2)
+    print_stats(stats)
+    print("\nWrote: " + ", ".join(os.path.relpath(path, PROJECT_ROOT) for path in written))
 
 if __name__ == "__main__":
     main()

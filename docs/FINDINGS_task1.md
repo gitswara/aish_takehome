@@ -374,3 +374,319 @@ Types are consistent across all records:
 | blank_subject | `delainey-d/_sent_mail/10.`, `lavorato-j/_sent_mail/11.`, `lay-k/_sent/97.` |
 
 - Only 3 of the 5 mailboxes appear, because sorted order fills each category before reaching skilling-j and whalley-l.
+
+---
+
+## Step 8: Extraction statistics
+
+**What I did:** I replaced the scattered prints with `build_stats()`, which collects every number into one dict. `print_stats()` prints it, and the same dict is saved as `output/extraction_stats.json`. Completeness is reported over **all processed files** (gaps in the raw data) and over **parsed OK** (what goes into the DB).
+
+**Full-run output** (exact copy):
+
+```
+Files found: 21662   processed: 21662
+  lay-k          5937
+  lavorato-j     4685
+  skilling-j     4139
+  delainey-d     3566
+  whalley-l      3335
+Parsed OK: 20339   Failed: 1323
+    1293  missing To
+      23  placeholder date
+       5  placeholder date; missing To
+       2  invalid From address
+Body split, by first marker found:
+  no_marker               14788
+  notes_forward            3353
+  outlook_original         1487
+  notes_reply_one_line     1153
+  notes_reply_two_line      463
+  gt_quoted                 257
+  notes_reply_from_line     161
+Leading Notes header blocks stripped (D17): 12
+Field completeness:        all processed      parsed OK
+  message_id           21662 100.0%     20339 100.0%
+  date                 21662 100.0%     20339 100.0%
+  from_address         21660 100.0%     20339 100.0%
+  to_addresses         20364  94.0%     20339 100.0%
+  cc_addresses          5594  25.8%      5471  26.9%
+  bcc_addresses         5594  25.8%      5471  26.9%
+  subject              20173  93.1%     18873  92.8%
+  x_from               21662 100.0%     20339 100.0%
+  x_to                 21146  97.6%     20339 100.0%
+  x_cc                  5628  26.0%      5492  27.0%
+  x_bcc                   13   0.1%        13   0.1%
+  x_folder             21662 100.0%     20339 100.0%
+  x_origin             21662 100.0%     20339 100.0%
+  content_type         21662 100.0%     20339 100.0%
+  source_file          21662 100.0%     20339 100.0%
+  body                 20570  95.0%     19281  94.8%
+  forwarded_content     3353  15.5%      3310  16.3%
+  quoted_content        3521  16.3%      3450  17.0%
+  has_attachment        1336   6.2%      1149   5.6%
+
+Wrote: output/parsed_emails.jsonl, error_log.txt, output/extraction_stats.json, output/sample_parsed_emails.jsonl
+```
+
+**Checks:** parsed + failed = processed (20,339 + 1,323 = 21,662 ✔) · body-split markers sum to 21,662 ✔ · `extraction_stats.json` is valid JSON (3.4 KB) ✔. The 200-file sample run first: 188 parsed, 12 failed.
+
+**Unexpected / not sure:**
+
+1. **`has_attachment` 1,336 vs 1,149:** D21's 1,336 counts all processed files. Among parsed emails it's 1,149, because 187 emails with attachments failed (mostly no `To`). D21 now states both.
+2. **What "filled" means:** a blank subject `""` and `has_attachment = false` count as not filled. So `subject` shows 92.8% among parsed records even though every one has a Subject header (D5).
+3. **`--limit` overwrites the outputs** with sample results. The stats record `"limit"`, so a sample run is identifiable. Always finish with a full run before committing.
+
+### Step 8 follow-up
+
+- Subject completeness is now reported two ways: `subject` (non-blank) 18,873 = 92.8%, and `subject_header_present` 20,339 = 100% (parsed OK).
+- **D24:** `--limit` runs now write to `output/sample_run/` (git-ignored). Verified: the real `error_log.txt`, `parsed_emails.jsonl`, `extraction_stats.json` and `sample_parsed_emails.jsonl` were byte-identical (MD5) before and after a `--limit 200` run.
+- The README will quote the **parsed** attachment count: **1,149**.
+
+---
+
+## Step 9: Full-run verification and spot-check
+
+**What I did:** (1) checked every count in DECISIONS.md against `output/extraction_stats.json` from the full run; (2) a no-text-lost check over all 20,339 records; (3) a spot-check of 10 records against their raw files, automated and by eye.
+
+### 1. Counts vs DECISIONS.md
+
+| Check | Expected | Actual | |
+| --- | --- | --- | --- |
+| Files found (D3) | 21,662 | 21,662 | ✔ |
+| Parsed OK (prediction) | 20,339 | 20,339 | ✔ |
+| Failed (prediction) | 1,323 | 1,323 | ✔ |
+| D4 missing To | 1,298 | 1,298 | ✔ |
+| D6 placeholder date | 28 | 28 | ✔ |
+| D14 invalid From | 2 | 2 | ✔ |
+| D22 missing body | 0 | 0 | ✔ |
+| D5 blank subjects (all processed) | 1,489 | 1,489 | ✔ |
+| D7 Cc lists (all processed) | 5,594 | 5,594 | ✔ |
+| D17 Notes blocks stripped | 12 | 12 | ✔ |
+| D8 notes_forward | 3,353 | 3,353 | ✔ |
+| D19 gt_quoted | 257 | 257 | ✔ |
+| D8 amendment notes_reply_from_line | 161 | 161 | ✔ |
+| Markers sum | 21,662 | 21,662 | ✔ |
+| D21 has_attachment (all processed) | 1,336 | 1,336 | ✔ |
+| D21 has_attachment (parsed) | 1,149 | 1,149 | ✔ |
+| JSONL lines | 20,339 | 20,339 | ✔ |
+
+No-text-lost check: 20,339 of 20,339 records: body + forwarded + quoted == original body (ignoring whitespace; minus the D17 block). Mismatches: 0 []
+
+### 2. Spot-check: the 10 files
+
+Open these yourself (paths are relative to `data/`):
+
+1. `maildir/whalley-l/_sent_mail/212.`: plain email, no markers
+2. `maildir/skilling-j/inbox/1533.`: **with Cc** (4 recipients; Bcc is a copy, D7)
+3. `maildir/lay-k/inbox/1082.`: **with attachment** (` - Architectural Electronics-Huntingdon.xls`)
+4. `maildir/lay-k/elizabeth/23.`: **nested forward** (4 levels; forwards ` - ENRON.DOC`)
+5. `maildir/lay-k/sent_items/2.`: **reply with quoted text** (Outlook `-----Original Message-----`)
+6. `maildir/lay-k/sent/71.`: reply with quoted text (Notes one-line header)
+7. `maildir/delainey-d/sent/333.`: D17 block stripped, then a two-line Notes reply
+8. `maildir/whalley-l/connect_deletes/113.`: quoted-printable decoded, D16 apostrophes (`Enron's`)
+9. `maildir/lay-k/inbox/15.`: non-ASCII X-From (`François`, Windows-1252)
+10. `maildir/lavorato-j/all_documents/8.`: blank subject (D5), with Cc
+
+**Result: 10 of 10 pass.** Every record passes automated checks against its raw headers (Message-ID, From, To count, Cc count, Subject). I also read every field by eye:
+- Dates are correct in UTC: −0800 (PST) adds 8 hours, −0700 (PDT) adds 7.
+- Nothing is truncated, and non-ASCII characters are intact.
+- #4: body is empty and all 4 forward levels are in `forwarded_content`.
+- #8: no `=20`, no soft line breaks and no `\x01,` left.
+
+Things that look odd but are faithful to the source:
+- #7's `To` is `kay.chapman@enron.com`, the sender herself. That's what the raw `To:` header says.
+- #9's X-From keeps a literal `\"` around the name, exactly as in the raw header.
+- #6's body begins `Ken Lay wrote:`. Rosalee is passing on Ken's letter as her own text, and the real quote starts at the Notes header `Loyal Lay … on 08/05/2000 06:25:04 PM`.
+
+### 3. Full spot-check tables
+
+### 1. Plain email, no markers
+
+`maildir/whalley-l/_sent_mail/212.`
+
+| Field | Raw header | Parsed |
+| --- | --- | --- |
+| Date | `Tue, 27 Feb 2001 02:17:00 -0800 (PST)` | `2001-02-27T10:17:00+00:00` |
+| From | `greg.whalley@enron.com` | `greg.whalley@enron.com` |
+| To | 1 address(es) | 1: `jeffrey.mcmahon@enron.com` |
+| Cc / Bcc | 0 / 0 | 0 / 0 |
+| Subject | `Re: FW: Enron & FairAir - Mike Kirksey suggested I contact you` | `Re: FW: Enron & FairAir - Mike Kirksey suggested I contact you` |
+| X-From | `Greg Whalley` | `Greg Whalley` |
+| has_attachment | | `False` |
+| body | | 270 chars: _I have actually talked with these guys before.  More than a year ago I / think.  I may have an old copy of their business plan.  The guy I talk_ |
+| forwarded_content | | 0 chars: _(none)_ |
+| quoted_content | | 0 chars: _(none)_ |
+
+Auto-checks vs raw: Message-ID ✔ · From ✔ · To count ✔ · Cc count ✔ · Subject ✔
+
+### 2. With Cc (4 recipients); Bcc copies Cc (D7)
+
+`maildir/skilling-j/inbox/1533.`
+
+| Field | Raw header | Parsed |
+| --- | --- | --- |
+| Date | `Thu, 12 Jul 2001 15:43:41 -0700 (PDT)` | `2001-07-12T22:43:41+00:00` |
+| From | `karen.denne@enron.com` | `karen.denne@enron.com` |
+| To | 1 address(es) | 1: `jeff.skilling@enron.com` |
+| Cc / Bcc | 4 / 4 | 4 / 4 |
+| Subject | `Business 2.0 Interview` | `Business 2.0 Interview` |
+| X-From | `Denne, Karen </O=ENRON/OU=NA/CN=RECIPIENTS/CN=KDENNE>` | `Denne, Karen </O=ENRON/OU=NA/CN=RECIPIENTS/CN=KDENNE>` |
+| has_attachment | | `False` |
+| body | | 1484 chars: _Jeff -- You are scheduled to do a telephone interview with Erick Schon / 1.  There's been a lot written about the New Economy, and in the past _ |
+| forwarded_content | | 0 chars: _(none)_ |
+| quoted_content | | 0 chars: _(none)_ |
+
+Auto-checks vs raw: Message-ID ✔ · From ✔ · To count ✔ · Cc count ✔ · Subject ✔
+
+### 3. With attachment (Notes ` - file.xls`)
+
+`maildir/lay-k/inbox/1082.`
+
+| Field | Raw header | Parsed |
+| --- | --- | --- |
+| Date | `Wed, 16 Jan 2002 11:47:35 -0800 (PST)` | `2002-01-16T19:47:35+00:00` |
+| From | `barblpl@yahoo.com` | `barblpl@yahoo.com` |
+| To | 3 address(es) | 3: `skeeper@enron.com, klay@enron.com, mrslinda@lplpi.com` |
+| Cc / Bcc | 0 / 0 | 0 / 0 |
+| Subject | `Electronics bill` | `Electronics bill` |
+| X-From | `Barbara VanDerVliet <barblpl@yahoo.com>@ENRON` | `Barbara VanDerVliet <barblpl@yahoo.com>@ENRON` |
+| has_attachment | | `True` |
+| body | | 450 chars: _Here is the update for the Architectural electronic bill.  Mrs Lay and / Barb_ |
+| forwarded_content | | 0 chars: _(none)_ |
+| quoted_content | | 0 chars: _(none)_ |
+
+Auto-checks vs raw: Message-ID ✔ · From ✔ · To count ✔ · Cc count ✔ · Subject ✔
+
+### 4. Nested forward (4 levels)
+
+`maildir/lay-k/elizabeth/23.`
+
+| Field | Raw header | Parsed |
+| --- | --- | --- |
+| Date | `Mon, 18 Oct 1999 01:47:00 -0700 (PDT)` | `1999-10-18T08:47:00+00:00` |
+| From | `steven.kean@enron.com` | `steven.kean@enron.com` |
+| To | 6 address(es) | 6: `mark.schroeder@enron.com, kenneth.lay@enron.com, joseph.sutton@enron.com …` |
+| Cc / Bcc | 0 / 0 | 0 / 0 |
+| Subject | `Translation of articles` | `Translation of articles` |
+| X-From | `Steven J Kean` | `Steven J Kean` |
+| has_attachment | | `True` |
+| body | | 0 chars: _(none)_ |
+| forwarded_content | | 1096 chars: _---------------------- Forwarded by Steven J Kean/HOU/EES on 10/18/99 _ |
+| quoted_content | | 0 chars: _(none)_ |
+
+Auto-checks vs raw: Message-ID ✔ · From ✔ · To count ✔ · Cc count ✔ · Subject ✔
+
+### 5. Outlook reply with quoted text
+
+`maildir/lay-k/sent_items/2.`
+
+| Field | Raw header | Parsed |
+| --- | --- | --- |
+| Date | `Tue, 25 Sep 2001 11:39:46 -0700 (PDT)` | `2001-09-25T18:39:46+00:00` |
+| From | `kenneth.lay@enron.com` | `kenneth.lay@enron.com` |
+| To | 1 address(es) | 1: `hasan.kedwaii@enron.com` |
+| Cc / Bcc | 0 / 0 | 0 / 0 |
+| Subject | `RE: Media Reports` | `RE: Media Reports` |
+| X-From | `Lay, Kenneth </O=ENRON/OU=NA/CN=RECIPIENTS/CN=KLAY>` | `Lay, Kenneth </O=ENRON/OU=NA/CN=RECIPIENTS/CN=KLAY>` |
+| has_attachment | | `False` |
+| body | | 171 chars: _Hasan: / I fully understand and agree with your comments.  Unfortunately, I did_ |
+| forwarded_content | | 0 chars: _(none)_ |
+| quoted_content | | 2852 chars: _-----Original Message-----_ |
+
+Auto-checks vs raw: Message-ID ✔ · From ✔ · To count ✔ · Cc count ✔ · Subject ✔
+
+### 6. Notes one-line reply with quoted text
+
+`maildir/lay-k/sent/71.`
+
+| Field | Raw header | Parsed |
+| --- | --- | --- |
+| Date | `Tue, 8 Aug 2000 06:33:00 -0700 (PDT)` | `2000-08-08T13:33:00+00:00` |
+| From | `rosalee.fleming@enron.com` | `rosalee.fleming@enron.com` |
+| To | 1 address(es) | 1: `loyal_lay@yahoo.com` |
+| Cc / Bcc | 0 / 0 | 0 / 0 |
+| Subject | `Re: Your E-mail address` | `Re: Your E-mail address` |
+| X-From | `Rosalee Fleming` | `Rosalee Fleming` |
+| has_attachment | | `False` |
+| body | | 520 chars: _Ken Lay wrote: / "Loyal -_ |
+| forwarded_content | | 0 chars: _(none)_ |
+| quoted_content | | 952 chars: _Loyal Lay <loyal_lay@yahoo.com> on 08/05/2000 06:25:04 PM_ |
+
+Auto-checks vs raw: Message-ID ✔ · From ✔ · To count ✔ · Cc count ✔ · Subject ✔
+
+### 7. D17 block stripped + two-line Notes reply
+
+`maildir/delainey-d/sent/333.`
+
+| Field | Raw header | Parsed |
+| --- | --- | --- |
+| Date | `Mon, 28 Aug 2000 10:17:00 -0700 (PDT)` | `2000-08-28T17:17:00+00:00` |
+| From | `kay.chapman@enron.com` | `kay.chapman@enron.com` |
+| To | 1 address(es) | 1: `kay.chapman@enron.com` |
+| Cc / Bcc | 0 / 0 | 0 / 0 |
+| Subject | `Re: ENA Management Committee` | `Re: ENA Management Committee` |
+| X-From | `Kay Chapman` | `Kay Chapman` |
+| has_attachment | | `False` |
+| body | | 366 chars: _This is the original memo sent to all the committee members from Dave. / then sent out another one cancelling the Staff Meeting for all those n_ |
+| forwarded_content | | 0 chars: _(none)_ |
+| quoted_content | | 1836 chars: _David W Delainey_ |
+
+Auto-checks vs raw: Message-ID ✔ · From ✔ · To count ✔ · Cc count ✔ · Subject ✔
+
+### 8. Quoted-printable decoded + D16 apostrophes
+
+`maildir/whalley-l/connect_deletes/113.`
+
+| Field | Raw header | Parsed |
+| --- | --- | --- |
+| Date | `Tue, 12 Dec 2000 10:50:00 -0800 (PST)` | `2000-12-12T18:50:00+00:00` |
+| From | `enron.announcements@enron.com` | `enron.announcements@enron.com` |
+| To | 1 address(es) | 1: `all.states@enron.com` |
+| Cc / Bcc | 0 / 0 | 0 / 0 |
+| Subject | `Improved Process for Engaging Temporary Workers` | `Improved Process for Engaging Temporary Workers` |
+| X-From | `Enron Announcements` | `Enron Announcements` |
+| has_attachment | | `False` |
+| body | | 4438 chars: _As you are aware, Enron utilizes temporary staffing services to satisf / staffing requirements throughout the company.  For the past several mo_ |
+| forwarded_content | | 0 chars: _(none)_ |
+| quoted_content | | 0 chars: _(none)_ |
+
+Auto-checks vs raw: Message-ID ✔ · From ✔ · To count ✔ · Cc count ✔ · Subject ✔
+
+### 9. Non-ASCII X-From (Windows-1252)
+
+`maildir/lay-k/inbox/15.`
+
+| Field | Raw header | Parsed |
+| --- | --- | --- |
+| Date | `Tue, 22 May 2001 09:56:24 -0700 (PDT)` | `2001-05-22T16:56:24+00:00` |
+| From | `amepya2@hotmail.com` | `amepya2@hotmail.com` |
+| To | 1 address(es) | 1: `kenneth.lay@enron.com` |
+| Cc / Bcc | 0 / 0 | 0 / 0 |
+| Subject | `Three proposals, following up our recent meeting.` | `Three proposals, following up our recent meeting.` |
+| X-From | `\"François Ndengwe\" <amepya2@hotmail.com>@ENRON <IMCEANOTES` | `\"François Ndengwe\" <amepya2@hotmail.com>@ENRON <IMCEANOTES` |
+| has_attachment | | `True` |
+| body | | 10587 chars: _Dr. Kenneth L. Lay / Chairman of the Board_ |
+| forwarded_content | | 0 chars: _(none)_ |
+| quoted_content | | 0 chars: _(none)_ |
+
+Auto-checks vs raw: Message-ID ✔ · From ✔ · To count ✔ · Cc count ✔ · Subject ✔
+
+### 10. Blank subject (D5), Cc
+
+`maildir/lavorato-j/all_documents/8.`
+
+| Field | Raw header | Parsed |
+| --- | --- | --- |
+| Date | `Mon, 17 Jan 2000 12:35:00 -0800 (PST)` | `2000-01-17T20:35:00+00:00` |
+| From | `john.lavorato@enron.com` | `john.lavorato@enron.com` |
+| To | 1 address(es) | 1: `john.sherriff@enron.com` |
+| Cc / Bcc | 1 / 1 | 1 / 1 |
+| Subject | `` | `` |
+| X-From | `John J Lavorato` | `John J Lavorato` |
+| has_attachment | | `False` |
+| body | | 326 chars: _John, I thought I would send you a note to outline our conversation re / Redmond.  Dave will return to the London office in late May.  In late_ |
+| forwarded_content | | 0 chars: _(none)_ |
+| quoted_content | | 0 chars: _(none)_ |
+
+Auto-checks vs raw: Message-ID ✔ · From ✔ · To count ✔ · Cc count ✔ · Subject ✔
+

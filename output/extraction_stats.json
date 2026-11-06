@@ -1,0 +1,195 @@
+{
+  "run_at_utc": "2026-11-06T00:34:56+00:00",
+  "limit": null,
+  "files_found": 21662,
+  "files_found_by_mailbox": {
+    "lay-k": 5937,
+    "lavorato-j": 4685,
+    "skilling-j": 4139,
+    "delainey-d": 3566,
+    "whalley-l": 3335
+  },
+  "files_processed": 21662,
+  "parsed_ok": 20339,
+  "failed": 1323,
+  "failures_by_reason": {
+    "missing To": 1293,
+    "placeholder date": 23,
+    "placeholder date; missing To": 5,
+    "invalid From address": 2
+  },
+  "body_split_by_first_marker": {
+    "no_marker": 14788,
+    "notes_forward": 3353,
+    "outlook_original": 1487,
+    "notes_reply_one_line": 1153,
+    "notes_reply_two_line": 463,
+    "gt_quoted": 257,
+    "notes_reply_from_line": 161
+  },
+  "leading_notes_blocks_stripped": 12,
+  "field_completeness_all_processed": {
+    "message_id": {
+      "filled": 21662,
+      "percent": 100.0
+    },
+    "date": {
+      "filled": 21662,
+      "percent": 100.0
+    },
+    "from_address": {
+      "filled": 21660,
+      "percent": 100.0
+    },
+    "to_addresses": {
+      "filled": 20364,
+      "percent": 94.0
+    },
+    "cc_addresses": {
+      "filled": 5594,
+      "percent": 25.8
+    },
+    "bcc_addresses": {
+      "filled": 5594,
+      "percent": 25.8
+    },
+    "subject": {
+      "filled": 20173,
+      "percent": 93.1
+    },
+    "subject_header_present": {
+      "filled": 21662,
+      "percent": 100.0
+    },
+    "x_from": {
+      "filled": 21662,
+      "percent": 100.0
+    },
+    "x_to": {
+      "filled": 21146,
+      "percent": 97.6
+    },
+    "x_cc": {
+      "filled": 5628,
+      "percent": 26.0
+    },
+    "x_bcc": {
+      "filled": 13,
+      "percent": 0.1
+    },
+    "x_folder": {
+      "filled": 21662,
+      "percent": 100.0
+    },
+    "x_origin": {
+      "filled": 21662,
+      "percent": 100.0
+    },
+    "content_type": {
+      "filled": 21662,
+      "percent": 100.0
+    },
+    "source_file": {
+      "filled": 21662,
+      "percent": 100.0
+    },
+    "body": {
+      "filled": 20570,
+      "percent": 95.0
+    },
+    "forwarded_content": {
+      "filled": 3353,
+      "percent": 15.5
+    },
+    "quoted_content": {
+      "filled": 3521,
+      "percent": 16.3
+    },
+    "has_attachment": {
+      "filled": 1336,
+      "percent": 6.2
+    }
+  },
+  "field_completeness_parsed_ok": {
+    "message_id": {
+      "filled": 20339,
+      "percent": 100.0
+    },
+    "date": {
+      "filled": 20339,
+      "percent": 100.0
+    },
+    "from_address": {
+      "filled": 20339,
+      "percent": 100.0
+    },
+    "to_addresses": {
+      "filled": 20339,
+      "percent": 100.0
+    },
+    "cc_addresses": {
+      "filled": 5471,
+      "percent": 26.9
+    },
+    "bcc_addresses": {
+      "filled": 5471,
+      "percent": 26.9
+    },
+    "subject": {
+      "filled": 18873,
+      "percent": 92.8
+    },
+    "subject_header_present": {
+      "filled": 20339,
+      "percent": 100.0
+    },
+    "x_from": {
+      "filled": 20339,
+      "percent": 100.0
+    },
+    "x_to": {
+      "filled": 20339,
+      "percent": 100.0
+    },
+    "x_cc": {
+      "filled": 5492,
+      "percent": 27.0
+    },
+    "x_bcc": {
+      "filled": 13,
+      "percent": 0.1
+    },
+    "x_folder": {
+      "filled": 20339,
+      "percent": 100.0
+    },
+    "x_origin": {
+      "filled": 20339,
+      "percent": 100.0
+    },
+    "content_type": {
+      "filled": 20339,
+      "percent": 100.0
+    },
+    "source_file": {
+      "filled": 20339,
+      "percent": 100.0
+    },
+    "body": {
+      "filled": 19281,
+      "percent": 94.8
+    },
+    "forwarded_content": {
+      "filled": 3310,
+      "percent": 16.3
+    },
+    "quoted_content": {
+      "filled": 3450,
+      "percent": 17.0
+    },
+    "has_attachment": {
+      "filled": 1149,
+      "percent": 5.6
+    }
+  }
+}
